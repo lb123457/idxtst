@@ -8,6 +8,7 @@ This is a module to create and manipulate indices.
 import os
 import sys
 import logging
+import pandas
 
 
 
@@ -25,6 +26,11 @@ class BlkIdx:
             self.description = kwargs['description']
 
 
+        # If a pandas dataframe is given, then uses it to create the index
+        if 'dataframe' in kwargs:
+            self.idxdata = kwargs['dataframe']
+
+
     def print(self):
         print("Index name = " + self.name)
         if hasattr(self, 'description'):
@@ -32,11 +38,26 @@ class BlkIdx:
 
 
 
-class BlkEquityIdx(BlkIdx):
+class BlkEQIdx(BlkIdx):
 
 
     def __init__(self, name, **kwargs):
         BlkIdx.__init__(self, name, **kwargs)
+
+
+    def print(self):
+        BlkIdx.print(self)
+        print('%s is an Equity Index' % self.name)
+
+
+
+class BlkFIIdx(BlkIdx):
+
+    def __init__(self, name, **kwargs):
+        BlkIdx.__init__(self, name, **kwargs)
+
+
+
 
 
 
@@ -45,5 +66,5 @@ if __name__ == "__main__":
     idx = BlkIdx('Top level index', description='This is a dummy index')
     idx.print()
 
-    idx = BlkEquityIdx('Equity index', description='This is a dummy equity index')
+    idx = BlkEQIdx('Equity index', description='This is a dummy equity index')
     idx.print()
