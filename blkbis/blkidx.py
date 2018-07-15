@@ -11,6 +11,8 @@ import logging
 import pandas
 
 
+logger = logging.getLogger()
+
 
 def __init__(self):
     print('Main init at the top')
@@ -32,9 +34,13 @@ class BlkIdx:
 
 
     def print(self):
+        logger.debug('')
         print("Index name = " + self.name)
         if hasattr(self, 'description'):
             print("Index description = " + self.description)
+
+
+
 
 
 
@@ -68,3 +74,5 @@ if __name__ == "__main__":
 
     idx = BlkEQIdx('Equity index', description='This is a dummy equity index')
     idx.print()
+
+    print()
