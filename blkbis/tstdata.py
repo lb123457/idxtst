@@ -3,7 +3,13 @@ import datetime
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import random
+import string
+
+
 import blkbis.dates
+
+from blkbis import blkidx
 
 _DEFAULT_NAME = 'Synthetic sample index'
 _SECTORS = ['FIN', 'UTIL', 'TELE']
@@ -19,9 +25,35 @@ _MIN_FIRM_SIZE_MM = 50
 _FIRM_SIZE_SIGMA = 500
 
 
+
+def create_random_id(**kwargs):
+    return (''.join([random.choice(string.ascii_letters) for n in range(7)])).upper()
+
+
+def create_random_universe(n=1000, **kwargs):
+    l = []
+    for n in range(n):
+        l.append(create_random_id())
+    return l
+
+
+def pick_random_sector():
+    return _SECTORS[random.randint(0, len(_SECTORS)-1)]
+
+
+def pick_random_sectors(n=1000, **kwargs):
+    l = []
+    for n in range(n):
+        l.append(pick_random_sector())
+    return l
+
+
+
+
+
 class HistoricalSampleData:
 
-    'Sample class that creates historical index for performance testing'
+    'Sample class that creates historical index for performance and QC testing'
 
     def __init__(self,
                  name = _DEFAULT_NAME,
@@ -64,23 +96,33 @@ class HistoricalSampleData:
         hist = []
 
         # Loops over each industry and dates
-        for sector in _SECTORS:
-            logging.info('Building universe for sector %s', sector)
-            for date in dates:
-                df = pd.DataFrame(np.random.normal(_DEFAULT_FIRM_SIZE_MM, _FIRM_SIZE_SIGMA, _DEFAULT_NUMBER_FIRMS), columns=['size_mm'])
 
-                clip_size = lambda x: max(x, _MIN_FIRM_SIZE_MM)
-                df['size_mm'] = df['size_mm'].transform(clip_size)
-
-                df['date'] = date
-                df['sector'] = sector
-                print(df)
-                hist.append(df)
+        for date in dates:
+            df = self.single_period_data()
+            df['date'] = date
+            hist.append(df)
 
         result = pd.concat(hist)
 
-        return result
+        idx = blkidx.BlkIdx(self.name, dataframe=result)
 
+        return idx
+
+
+
+    def single_period_data(self):
+        for sector in _SECTORS:
+            logging.debug('Building universe for sector %s', sector)
+
+            df = pd.DataFrame(np.random.normal(_DEFAULT_FIRM_SIZE_MM, _FIRM_SIZE_SIGMA, _DEFAULT_NUMBER_FIRMS),
+                              columns=['size_mm'])
+
+            clip_size = lambda x: max(x, _MIN_FIRM_SIZE_MM)
+
+            df['size_mm'] = df['size_mm'].transform(clip_size)
+            df['sector'] = sector
+
+        return df
 
 
     def dummy_function():

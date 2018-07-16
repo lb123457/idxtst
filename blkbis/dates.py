@@ -64,10 +64,10 @@ class DatesSeries:
 
         while running_date < self.end_date:
             running_date = running_date + datetime.timedelta(days=self.ndays)
-            logging.info(str(running_date))
+            logging.debug(running_date)
             date_list.append(running_date)
 
-        logging.info(str(date_list))
+        logging.debug(str(date_list))
 
         return  date_list
 

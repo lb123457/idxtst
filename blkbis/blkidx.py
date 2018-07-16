@@ -33,13 +33,20 @@ class BlkIdx:
             self.idxdata = kwargs['dataframe']
 
 
-    def print(self):
+    def info(self):
         logger.debug('')
         print("Index name = " + self.name)
         if hasattr(self, 'description'):
             print("Index description = " + self.description)
 
 
+    # Overloads the print statement
+    def __str__(self):
+        s = 'Index name = ' + self.name + '\n'
+        if hasattr(self, 'description'):
+            s += 'Index name = ' + self.description + '\n'
+
+        return s
 
 
 
