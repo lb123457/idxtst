@@ -10,6 +10,8 @@ import logging
 import pandas
 import logging
 
+logger = logging.getLogger()
+
 
 def __init__():
     logger.debug('')
@@ -20,28 +22,30 @@ def full_qc(idx):
 
 
 
-
-
-
-
-
-logger = logging.getLogger()
-
-
-
 class QCCheck:
 
 
-    def __init__(self, name, **kwargs):
-        self.name = name
+    def __init__(self,
+                 id=None,
+                 description=None,
+                 **kwargs):
+        '''
 
-        if 'description' in kwargs:
-            self.description = kwargs['description']
+        Checks to make sure all arguments are initialized.
 
+        :param name:
+        :param kwargs:
+        '''
 
-        # If a pandas dataframe is given, then uses it to create the index
-        if 'dataframe' in kwargs:
-            self.idxdata = kwargs['dataframe']
+        if id is None:
+            raise ValueError('id must be specified')
+        else:
+            self.id = id
+
+        if description is None:
+            raise ValueError('description must be specified')
+        else:
+            self.description = description
 
 
     def info(self):
@@ -53,9 +57,11 @@ class QCCheck:
 
     # Overloads the print statement
     def __str__(self):
-        s = 'Index name = ' + self.name + '\n'
+        s = ''
+        if hasattr(self, 'id'):
+            s += 'Id = ' + self.id + '\n'
         if hasattr(self, 'description'):
-            s += 'Index name = ' + self.description + '\n'
+            s += 'Description = ' + self.description + '\n'
 
         return s
 
@@ -64,21 +70,24 @@ class QCCheck:
 
 class TimeSeriesQCCheck(QCCheck):
 
-
-    def __init__(self, name, **kwargs):
-        BlkIdx.__init__(self, name, **kwargs)
-
-
-    def print(self):
-        BlkIdx.print(self)
-        print('%s is an Equity Index' % self.name)
+    def __init__(self):
+        QCCheck.__init__(self, id='TS_CHECK', description='Timeseries check')
 
 
 
-class CrossSectionalQCCkecl(QCCheck):
+class CrossSectionalQCCkeck(QCCheck):
 
-    def __init__(self, name, **kwargs):
-        BlkIdx.__init__(self, name, **kwargs)
+    def __init__(self):
+        QCCheck.__init__(self, id='CS_CHECK', description='Cross-sectional check')
+
+
+
+class ValueQCCkeck(QCCheck):
+
+    def __init__(self):
+        QCCheck.__init__(self, id='VALUE_CHECK', description='Value check')
+
+
 
 
 

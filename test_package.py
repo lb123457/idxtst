@@ -21,6 +21,9 @@ df = pd.DataFrame({'id': ids, 'sector': sectors})
 
 print(df)
 
+qcChk = qc.ValueQCCkeck()
+print(qcChk)
+
 exit()
 
 logger.info('Starting test...')
