@@ -24,12 +24,15 @@ def full_qc(idx):
 
 class QCCheck:
 
+    __type__ = 'GENERIC'
+    __type_description__ = 'This is a base generic test'
 
     def __init__(self,
                  id=None,
                  description=None,
                  **kwargs):
         '''
+        This is the base class for all QC Checks classes
 
         Checks to make sure all arguments are initialized.
 
@@ -48,20 +51,12 @@ class QCCheck:
             self.description = description
 
 
-    def info(self):
-        logger.debug('')
-        print("Index name = " + self.name)
-        if hasattr(self, 'description'):
-            print("Index description = " + self.description)
-
-
     # Overloads the print statement
     def __str__(self):
-        s = ''
-        if hasattr(self, 'id'):
-            s += 'Id = ' + self.id + '\n'
-        if hasattr(self, 'description'):
-            s += 'Description = ' + self.description + '\n'
+        s =  'Id               = ' + self.id + '\n'
+        s += 'Description      = ' + self.description + '\n'
+        s += 'Type             = ' + self.__type__ + '\n'
+        s += 'Type description = ' + self.__type_description__ + '\n'
 
         return s
 
@@ -69,26 +64,51 @@ class QCCheck:
 
 
 class TimeSeriesQCCheck(QCCheck):
+    '''
+    This is the base class for all Time Series QC Checks classes
+    '''
 
-    def __init__(self):
-        QCCheck.__init__(self, id='TS_CHECK', description='Timeseries check')
+    __type__ = 'TIME_SERIES'
+    __type_description__ = 'This check uses a times series to identify anomalous values'
+
+    def __init__(self,
+                 id=None,
+                 description=None,
+                 **kwargs):
+
+        QCCheck.__init__(self, id, description, **kwargs)
+
 
 
 
 class CrossSectionalQCCkeck(QCCheck):
 
-    def __init__(self):
-        QCCheck.__init__(self, id='CS_CHECK', description='Cross-sectional check')
+    __type__ = 'CROSS_SECTIONAL'
+    __type_description__ = 'This check uses a cross-sectional analysis to identify anomalous values'
+
+    def __init__(self,
+                 id=None,
+                 description=None,
+                 **kwargs):
+
+        QCCheck.__init__(self, id, description, **kwargs)
+
+
 
 
 
 class ValueQCCkeck(QCCheck):
 
-    def __init__(self):
-        QCCheck.__init__(self, id='VALUE_CHECK', description='Value check')
 
+    __type__ = 'VALUE_BASED'
+    __type_description__ = 'This check uses a rule and value to identify anomalous values'
 
+    def __init__(self,
+                 id=None,
+                 description=None,
+                 **kwargs):
 
+        QCCheck.__init__(self, id, description, **kwargs)
 
 
 
@@ -96,10 +116,8 @@ class ValueQCCkeck(QCCheck):
 
 if __name__ == "__main__":
 
-    idx = BlkIdx('Top level index', description='This is a dummy index')
-    idx.print()
+    qc1 = QCCheck(id='Gen1', description='This is a generic dummy check')
+    print(qc1)
 
-    idx = BlkEQIdx('Equity index', description='This is a dummy equity index')
-    idx.print()
-
-    print()
+    qc2 = TimeSeriesQCCheck(id='Gen2', description='This is a generic time series check')
+    print(qc2)

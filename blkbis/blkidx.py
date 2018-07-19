@@ -53,7 +53,6 @@ class BlkIdx:
 
 class BlkEQIdx(BlkIdx):
 
-
     def __init__(self, name, **kwargs):
         BlkIdx.__init__(self, name, **kwargs)
 
