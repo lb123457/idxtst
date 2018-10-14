@@ -8,7 +8,8 @@ from __future__ import print_function
 import os
 import sys
 import logging
-import pandas
+import pandas as pd
+import numpy as np
 import logging
 
 
@@ -22,65 +23,16 @@ from tableausdk.HyperExtract import *
 # Logging setup
 logger = logging.getLogger()
 
-'''
-
-A QC is defined by:
-
-- The static description of the model
-
-    * qc_model_type
-    * qc_model_type_description
-    * qc_model_subtype
-    * qc_mdel_subtype_description
-    * qc_application
-
-- The static configuration of the model
-
-    * The configuration is model dependent
-    * In some cases, the configuration may not exist
-
-- Some information about the data
-
-    * This is nice to have but it may not be complete
-    * Examples are the start and end date, the sample size
-
-- The results
-
-    * Pass / no pass
-    * Level of abnormality
-    * ...
-
-'''
-
-# Defines the metadata items that are valid for an item.
-
-__QCCHECK_METADATA_ITEMS__ = ['description', 'id', 'type', 'type_description']
 
 
 def __init__():
     logger.debug('')
 
 
-def full_qc(idx):
-    logger.debug('Running full QC')
+'''
+Parse Arguments
+'''
 
-
-#------------------------------------------------------------------------------
-#
-#   This file is the copyrighted property of Tableau Software and is protected
-#   by registered patents and other applicable U.S. and international laws and
-#   regulations.
-#
-#   Unlicensed use of the contents of this file is prohibited. Please refer to
-#   the NOTICES.txt file for further details.
-#
-#------------------------------------------------------------------------------
-
-
-
-#------------------------------------------------------------------------------
-#   Parse Arguments
-#------------------------------------------------------------------------------
 def parseArguments():
     parser = argparse.ArgumentParser( description='A simple demonstration of the Tableau SDK.', formatter_class=argparse.RawTextHelpFormatter )
     # (NOTE: '-h' and '--help' are defined by default in ArgumentParser
@@ -105,14 +57,14 @@ def parseArguments():
                             ''' ) )
     return vars( parser.parse_args() )
 
-#------------------------------------------------------------------------------
-#   Create Extract
-#------------------------------------------------------------------------------
-#   (NOTE: This function assumes that the Tableau SDK Extract API is initialized)
-def createOrOpenExtract(
-    filename,
-    useSpatial
-):
+
+
+'''
+Creates extract schema
+'''
+
+def createOrOpenExtract(filename,
+                        useSpatial):
     try:
         # Create Extract Object
         # (NOTE: The Extract constructor opens an existing extract with the
@@ -143,14 +95,15 @@ def createOrOpenExtract(
 
     except TableauException as e:
         print('A fatal error occurred while creating the new extract:\n', e, '\nExiting now.')
-        exit( -1 )
+        exit(-1)
 
     return extract
 
-#------------------------------------------------------------------------------
-#   Populate Extract
-#------------------------------------------------------------------------------
-#   (NOTE: This function assumes that the Tableau SDK Extract API is initialized)
+
+'''
+Populates extract
+'''
+
 def populateExtract(
     extract,
     useSpatial
@@ -180,6 +133,66 @@ def populateExtract(
         print('A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
         exit( -1 )
 
+
+
+def createTestData():
+    df = pd.read_csv('/Users/ludovicbreger/Data/Tableau/test_df.csv')
+    print(df)
+
+    # Temporary code to see what the columns are like
+    print(df.dtypes)
+
+
+    for c in df.columns:
+        print(c)
+        try:
+            df[c] = pd.to_datetime(df[c])
+        except:
+            print('Cannot convert %s', c)
+
+    df['effective_date'] = pd.to_datetime(df['effective_date'])
+
+    print(df.effective_date)
+
+    print(df.dtypes)
+    print(df)
+
+    return df
+
+
+def guessSeriesType(df, c):
+    '''
+    Takes a pandas series and comes up with a best guess on its type.
+    This is particularly useful for dates.
+
+    :param s:
+    :return:
+    '''
+
+
+    formats = {'%Y-%m-%d': '^[1-2]\d{3}-\d{2}-\d{2}',
+               '%m/%d/%Y': '^\d{2}\/\d{2}\/[1-2]\d{3}',
+               '%Y%m%d': '^[1-2]\d{3}\d{2}\d{2}'
+    }
+
+    # For this format to work we need to make sure that the format matches
+    # as integers will convert just fine
+
+    for format, regexp in formats.items():
+        print('Trying to convert column %s to datetime using format %s' % (c, format))
+        if False not in df[c].astype(str).str.contains(regexp).tolist():
+        #if False not in df[c].astype(str).str.contains('^[1-2]\d{3}-\d{2}-\d{2}').tolist():
+            try:
+                df[c] = pd.to_datetime(df[c], format=format)
+            except:
+                print('pd.to_datetime() conversion failed')
+            else:
+                print('Converted column %s to datetime using format %s' % (c, format))
+                return
+        else:
+            print('Format %s because format does not match values' % (format))
+
+
 #------------------------------------------------------------------------------
 #   Main
 #------------------------------------------------------------------------------
@@ -206,6 +219,25 @@ def main():
     return 0
 
 if __name__ == "__main__":
+
+    df = pd.read_csv('/Users/ludovicbreger/Data/Tableau/test_df.csv')
+    df['test_date'] = '01/01/2001'
+    df['test_date2'] = '20010101'
+    df['test_date3'] = '2001-01-01 01:01:01.500'
+
+    print(df.dtypes)
+
+    guessSeriesType(df, 'effective_date')
+    guessSeriesType(df, 'A')
+    guessSeriesType(df, 'test_date')
+    guessSeriesType(df, 'test_date2')
+    guessSeriesType(df, 'test_date3')
+
+
+    print(df.dtypes)
+    print(df)
+    exit()
+    createTestData()
     retval = main()
     sys.exit( retval )
 

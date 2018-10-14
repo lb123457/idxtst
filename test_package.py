@@ -4,11 +4,7 @@ import pandas as pd
 
 # Logging setup
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-ch = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(funcName)s:%(levelname)s: %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+
 
 from blkbis import blkidx
 from blkbis import tstdata
@@ -21,24 +17,24 @@ df = pd.DataFrame({'id': ids, 'sector': sectors})
 
 print(df)
 
-qcChk = qc.ValueQCCkeck()
+qcChk = qc.ValueQCCkeck('test', 'This is a dummy test')
 print(qcChk)
 
-exit()
+
 
 logger.info('Starting test...')
 
 if __name__ == "__main__":
+
+    test_index = tstdata.HistoricalSampleData('Test Index')
+    test_index.show_info()
+
+    idx = test_index.build_index()
 
     idx = blkidx.BlkIdx('Top level index', description='This is a dummy index')
     print(idx)
 
     idx = blkidx.BlkEQIdx('Equity index', description='This is a dummy equity index')
     print(idx)
-
-    test_index = tstdata.HistoricalSampleData('Test Index')
-    test_index.show_info()
-
-    idx = test_index.build_index()
 
     qc.full_qc(idx)
