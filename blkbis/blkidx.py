@@ -31,6 +31,8 @@ class BlkIdx:
         # If a pandas dataframe is given, then uses it to create the index
         if 'dataframe' in kwargs:
             self.idxdata = kwargs['dataframe']
+            print('LUDO')
+
 
 
     def info(self):
@@ -45,6 +47,9 @@ class BlkIdx:
         s = 'Index name = ' + self.name + '\n'
         if hasattr(self, 'description'):
             s += 'Index name = ' + self.description + '\n'
+        if hasattr(self, 'idxdata'):
+            s += 'Dataframe: \n'
+            s += str(self.idxdata)
 
         return s
 
@@ -56,10 +61,6 @@ class BlkEQIdx(BlkIdx):
     def __init__(self, name, **kwargs):
         BlkIdx.__init__(self, name, **kwargs)
 
-
-    def print(self):
-        BlkIdx.print(self)
-        print('%s is an Equity Index' % self.name)
 
 
 

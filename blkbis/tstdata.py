@@ -14,11 +14,11 @@ from blkbis import blkidx
 _DEFAULT_NAME = 'Synthetic sample index'
 _SECTORS = ['FIN', 'UTIL', 'TELE']
 _DEFAULT_START_DATE = '20180101'
-_DEFAULT_END_DATE = '20180802'
+_DEFAULT_END_DATE = '20180105'
 _DEFAULT_FREQUENCY = 'MONTHLY'
 _DEFAULT_REFIX__FREQUENCY = 'ANNUAL'
 
-_DEFAULT_NUMBER_FIRMS = 1000
+_DEFAULT_NUMBER_FIRMS = 10
 _NUMBER_FIRMS_SIGMA = 10
 _DEFAULT_FIRM_SIZE_MM = 1000
 _MIN_FIRM_SIZE_MM = 50
@@ -98,6 +98,7 @@ class HistoricalSampleData:
         # Loops over each industry and dates
 
         for date in dates:
+            logging.debug('Building single period data for date %s', date)
             df = self.single_period_data()
             df['date'] = date
             hist.append(df)
@@ -111,9 +112,9 @@ class HistoricalSampleData:
 
 
     def single_period_data(self):
+        l = []
         for sector in _SECTORS:
-            logging.debug('Building universe for sector %s', sector)
-
+            print(sector)
             df = pd.DataFrame(np.random.normal(_DEFAULT_FIRM_SIZE_MM, _FIRM_SIZE_SIGMA, _DEFAULT_NUMBER_FIRMS),
                               columns=['size_mm'])
 
@@ -121,9 +122,30 @@ class HistoricalSampleData:
 
             df['size_mm'] = df['size_mm'].transform(clip_size)
             df['sector'] = sector
+            l.append(df)
 
-        return df
+
+        return pd.concat(l)
 
 
-    def dummy_function():
-        print('d')
+
+if __name__ == "__main__":
+
+    # Creates sample data
+    test_data = HistoricalSampleData('Test Index')
+    idx = test_data.build_index()
+
+    print(idx.idxdata['sector'].unique())
+    print(idx)
+
+    df = idx.idxdata
+    #df.reset_index(inplace=True)
+    print(df)
+    df['index2'] = df.index
+    #df.set_index(['date', 'index'], inplace=True)
+    print(df)
+    df = df[df['index'] == 0]
+    df2 = df.pivot(index=['date', 'index2'])
+    print(df2)
+
+
