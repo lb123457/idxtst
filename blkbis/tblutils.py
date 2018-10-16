@@ -81,7 +81,14 @@ def valueIsMissing(v):
 def df2schema(df, filename):
 
     try:
+
+        if os.path.exists(filename):
+            os.remove(filename)
+
         extract = Extract( filename )
+
+        #if ( extract.hasTable( 'Extract' ) ):
+        #   extract.__del__()
 
         if ( not extract.hasTable( 'Extract' ) ):
             schema = TableDefinition()
@@ -118,6 +125,8 @@ def df2schema(df, filename):
         table = extract.openTable( 'Extract' )
         schema = table.getTableDefinition()
 
+        nrows = 0
+
         for index, row in df.iterrows():
 
             print(index)
@@ -133,10 +142,7 @@ def df2schema(df, filename):
                 print(row[c])
                 print(type(row[c]))
                 if is_string_dtype(df[c]):
-                    if math.isnan(row[c]):
-                        tabRow.setNull(colIdx, row[c])
-                    else:
-                        tabRow.setCharString(colIdx, row[c])
+                    tabRow.setCharString(colIdx, row[c])
                 elif is_datetime64_dtype(df[c]):
                     tabRow.setDateTime(colIdx, row[c].year, row[c].month, row[c].day, row[c].hour,  row[c].minute, row[c].second, 0)
                 elif is_integer_dtype(df[c]):
@@ -149,87 +155,26 @@ def df2schema(df, filename):
                 colIdx += 1
 
             table.insert( tabRow )
+            if nrows == 20:
+                return
+            nrows += 1
+
+        print('%d rows inserted' % nrows)
 
     except TableauException as e:
         print('A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
         exit( -1 )
 
-    return extract
-
-
-'''
-Creates extract schema
-'''
-
-def createOrOpenExtract(filename,
-                        useSpatial):
-    try:
-        # Create Extract Object
-        # (NOTE: The Extract constructor opens an existing extract with the
-        #  given filename if one exists or creates a new extract with the given
-        #  filename if one does not)
-        print(filename)
-        extract = Extract( filename )
-
-        # Define Table Schema (If we are creating a new extract)
-        # (NOTE: In Tableau Data Engine, all tables must be named 'Extract')
-        if ( not extract.hasTable( 'Extract' ) ):
-            schema = TableDefinition()
-            schema.setDefaultCollation( Collation.EN_GB )
-            schema.addColumn( 'Purchased',              Type.DATETIME )
-            schema.addColumn( 'Product',                Type.CHAR_STRING )
-            schema.addColumn( 'uProduct',               Type.UNICODE_STRING )
-            schema.addColumn( 'Price',                  Type.DOUBLE )
-            schema.addColumn( 'Quantity',               Type.INTEGER )
-            schema.addColumn( 'Taxed',                  Type.BOOLEAN )
-            schema.addColumn( 'Expiration Date',        Type.DATE )
-            schema.addColumnWithCollation( 'Produkt',   Type.CHAR_STRING, Collation.DE )
-            if ( useSpatial ):
-                schema.addColumn( 'Destination',        Type.SPATIAL )
-            table = extract.addTable( 'Extract', schema )
-            if ( table == None ):
-                print('A fatal error occurred while creating the table:\nExiting now\n.')
-                exit( -1 )
-
-    except TableauException as e:
-        print('A fatal error occurred while creating the new extract:\n', e, '\nExiting now.')
-        exit(-1)
+    else:
+        extract.close()
 
     return extract
 
 
-'''
-Populates extract
-'''
 
-def populateExtract(
-    extract,
-    useSpatial
-):
-    try:
-        # Get Schema
-        table = extract.openTable( 'Extract' )
-        schema = table.getTableDefinition()
+def publishExtract(extract):
+    pass
 
-        # Insert Data
-        row = Row( schema )
-        row.setDateTime( 0, 2012, 7, 3, 11, 40, 12, 4550 )  # Purchased
-        row.setCharString( 1, 'Beans' )                     # Product
-        row.setString( 2, u'uniBeans'    )                  # Unicode Product
-        row.setDouble( 3, 1.08 )                            # Price
-        row.setDate( 6, 2029, 1, 1 )                        # Expiration Date
-        row.setCharString( 7, 'Bohnen' )                    # Produkt
-        # in python2: use `xrange` instead of `range` here to reduce memory consumption
-        for i in range( 10 ):
-            row.setInteger( 4, i * 10 )                     # Quantity
-            row.setBoolean( 5, i % 2 == 1 )                 # Taxed
-            if useSpatial:
-                row.setSpatial( 8, "POINT (30 10)" )        # Destination
-            table.insert( row )
-
-    except TableauException as e:
-        print('A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
-        exit( -1 )
 
 
 def updateDateTypes(df):
@@ -311,6 +256,8 @@ if __name__ == "__main__":
 
     updateDateTypes(df)
 
+    df = df.drop('next_cusip', 1)
+    df = df.head(50)
     #guessSeriesType(df, 'effective_date')
     #guessSeriesType(df, 'A')
     #guessSeriesType(df, 'test_date')
@@ -319,16 +266,12 @@ if __name__ == "__main__":
 
 
     print(df.dtypes)
+    print(df.shape)
     print(df)
+
 
     #df.fillna(0, inplace=True)
 
-    extract = df2schema(df, '/Users/ludovicbreger/Data/Tableau/test_df1.hyper')
-    fillExtract(extract, df)
-
-    exit()
-    createTestData()
-    retval = main()
-    sys.exit( retval )
+    extract = df2schema(df, '/Users/ludovicbreger/Data/Tableau/test_df2.hyper')
 
 
