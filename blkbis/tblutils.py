@@ -37,6 +37,7 @@ Creates a schema from a pandas dataframe.
 print(sys.path)
 
 from pandas.api.types import is_string_dtype
+from pandas.api.types import is_bool_dtype
 from pandas.api.types import is_numeric_dtype
 from pandas.api.types import is_integer_dtype
 from pandas.api.types import is_float_dtype
@@ -51,7 +52,8 @@ def valueIsMissing(v):
         return False
 
 
-def df2schema(df, filename):
+def df2extract(df=None,
+              extract_file=None):
     '''
     Takes a pandas dataframe as input and converts it into a Tableau extract.
     If the extract already exists, it is deleted first.
@@ -63,29 +65,32 @@ def df2schema(df, filename):
 
     try:
 
-        if os.path.exists(filename):
-            os.remove(filename)
+        if os.path.exists(extract_file):
+            os.remove(extract_file)
 
-        extract = Extract( filename )
+        extract = Extract( extract_file )
 
         if ( not extract.hasTable( 'Extract' ) ):
             schema = TableDefinition()
             schema.setDefaultCollation( Collation.EN_GB )
 
             for c in df.columns:
-                if is_string_dtype(df[c]):
-                    schema.addColumn(c, Type.CHAR_STRING)
-                    df[c].fillna('', inplace=True)
-                elif is_datetime64_dtype(df[c]):
-                    schema.addColumn(c, Type.DATETIME)
+                if is_datetime64_dtype(df[c]):
+                    ttype = Type.DATETIME
                 elif is_integer_dtype(df[c]):
-                    schema.addColumn(c, Type.INTEGER)
+                    ttype = Type.INTEGER
                     df[c].fillna(0, inplace=True)
                 elif is_float_dtype(df[c]):
-                    schema.addColumn(c, Type.DOUBLE)
+                    ttype = Type.DOUBLE
                     df[c].fillna(0, inplace=True)
                 elif is_bool_dtype(df[c]):
-                    schema.addColumn(c, Type.BOOLEAN)
+                    ttype = Type.BOOLEAN
+                else:
+                    ttype = Type.CHAR_STRING
+                    df[c].fillna('', inplace=True)
+
+                logger.info('Column type for %s is %s', c, ttype)
+                schema.addColumn(c, ttype)
 
 
             table = extract.addTable( 'Extract', schema )
@@ -108,7 +113,6 @@ def df2schema(df, filename):
         for index, row in df.iterrows():
 
             tabRow = Row( schema )
-
             colIdx = 0
 
             for c in df.columns:
@@ -130,10 +134,10 @@ def df2schema(df, filename):
                 return
             nrows += 1
 
-        print('%d rows inserted' % nrows)
+        logger.info('%d rows inserted' % nrows)
 
     except TableauException as e:
-        print('A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
+        raise('A fatal error occurred while populating the extract:\n', e, '\nExiting now.')
         exit( -1 )
 
     else:
@@ -143,10 +147,16 @@ def df2schema(df, filename):
 
 
 
-def publishExtract(args):
+def publishExtract(extract_file=None,
+                   server_address=None,
+                   site=None,
+                   project=None,
+                   username=None,
+                   password=None
+                   ):
 
-    tableau_auth = TSC.TableauAuth(args.username, args.password)
-    server = TSC.Server(args.server)
+    tableau_auth = TSC.TableauAuth(username, password)
+    server = TSC.Server(server_address)
     server.use_highest_version()
 
     with server.auth.sign_in(tableau_auth):
@@ -154,24 +164,24 @@ def publishExtract(args):
         all_projects, pagination_item = server.projects.get()
         default_project = next((project for project in all_projects if project.is_default()), None)
 
-        # Publish datasource if publish flag is set (-publish, -p)
-        if args.publish:
-            if default_project is not None:
-                new_datasource = TSC.DatasourceItem(default_project.id)
-                new_datasource = server.datasources.publish(
-                    new_datasource, args.publish, TSC.Server.PublishMode.Overwrite)
-                print("Datasource published. ID: {}".format(new_datasource.id))
-            else:
-                print("Publish failed. Could not find the default project.")
+        if default_project is not None:
+            new_datasource = TSC.DatasourceItem(default_project.id)
+            new_datasource = server.datasources.publish(
+                new_datasource, args.publish, TSC.Server.PublishMode.Overwrite)
+            print("Datasource published. ID: {}".format(new_datasource.id))
+        else:
+            print("Publish failed. Could not find the default project.")
 
-        # Gets all datasource items
-        all_datasources, pagination_item = server.datasources.get()
-        print("\nThere are {} datasources on site: ".format(pagination_item.total_available))
-        print([datasource.name for datasource in all_datasources])
 
 
 
 def main():
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(funcName)s:%(levelname)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
     parser = argparse.ArgumentParser( description='A simple demonstration of the Tableau SDK.', formatter_class=argparse.RawTextHelpFormatter )
     # (NOTE: '-h' and '--help' are defined by default in ArgumentParser
@@ -183,7 +193,10 @@ def main():
     parser.add_argument('--build', help='Boolean option to build the hyper file', default=True)
 
     parser.add_argument('--publish', help='Boolean option to publish the extract', default=False)
-    parser.add_argument('--server', '-s', help='server address', default='https://public.tableau.com')
+    parser.add_argument('--server', help='Server address', default='https://public.tableau.com')
+    parser.add_argument('--site', help='Site name')
+    parser.add_argument('--project', help='Project name')
+
     parser.add_argument('--username', '-u', help='username to sign into server', default='breglud')
     parser.add_argument('--password', '-x', help='password to sign into server', default='LudoTableau123$')
 
@@ -194,17 +207,20 @@ def main():
 
     if args.build:
 
-        df = pd.read_csv('/Users/ludovicbreger/Data/Tableau/test_df.csv')
+        df = pd.read_csv('/Users/ludovicbreger/Data/Tableau/test_df.csv', parse_dates=True)
+        logger.info(df.dtypes)
+
 
         dfutils.updateDateTypes(df)
 
         df = df.drop('next_cusip', 1)
         df = df.head(50)
 
-        extract = df2schema(df, args.extract)
-
+        extract = df2extract(df=df,
+                            extract_file=args.extract)
 
     if args.publish:
+        password = getpass.getpass()
         publishExtract(args)
 
 
