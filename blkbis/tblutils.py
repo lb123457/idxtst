@@ -30,11 +30,11 @@ from blkbis import dfutils
 logger = logging.getLogger()
 
 
-
 '''
 Creates a schema from a pandas dataframe.
 '''
 
+print(sys.path)
 
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -52,6 +52,14 @@ def valueIsMissing(v):
 
 
 def df2schema(df, filename):
+    '''
+    Takes a pandas dataframe as input and converts it into a Tableau extract.
+    If the extract already exists, it is deleted first.
+
+    :param df: dataframe to be converted into an extract
+    :param filename: full path of the extract
+    :return: None
+    '''
 
     try:
 
@@ -59,9 +67,6 @@ def df2schema(df, filename):
             os.remove(filename)
 
         extract = Extract( filename )
-
-        #if ( extract.hasTable( 'Extract' ) ):
-        #   extract.__del__()
 
         if ( not extract.hasTable( 'Extract' ) ):
             schema = TableDefinition()
@@ -102,18 +107,11 @@ def df2schema(df, filename):
 
         for index, row in df.iterrows():
 
-            print(index)
-            print(row)
-            print()
-
             tabRow = Row( schema )
 
             colIdx = 0
 
             for c in df.columns:
-                print(c)
-                print(row[c])
-                print(type(row[c]))
                 if is_string_dtype(df[c]):
                     tabRow.setCharString(colIdx, row[c])
                 elif is_datetime64_dtype(df[c]):
@@ -146,10 +144,11 @@ def df2schema(df, filename):
 
 
 def publishExtract(args):
-    # SIGN IN
+
     tableau_auth = TSC.TableauAuth(args.username, args.password)
     server = TSC.Server(args.server)
     server.use_highest_version()
+
     with server.auth.sign_in(tableau_auth):
         # Query projects for use when demonstrating publishing and updating
         all_projects, pagination_item = server.projects.get()
@@ -172,22 +171,18 @@ def publishExtract(args):
 
 
 
-
-
-
-#------------------------------------------------------------------------------
-#   Main
-#------------------------------------------------------------------------------
-
 def main():
 
     parser = argparse.ArgumentParser( description='A simple demonstration of the Tableau SDK.', formatter_class=argparse.RawTextHelpFormatter )
     # (NOTE: '-h' and '--help' are defined by default in ArgumentParser
 
+    parser.add_argument('--csvfile', help='Path to the CSV file that should be used as input')
+    parser.add_argument('--parquetfile', help='Path to the Parquet file that should be used as input')
 
-    parser.add_argument('--build', '-b', help='path to hyper file to build', default='/Users/ludovicbreger/PycharmProjects/idxtst/test.hyper')
-    parser.add_argument('--publish', '-p', metavar='FILEPATH', help='path to datasource to publish', default=True)
-    parser.add_argument('--download', '-d', metavar='FILEPATH', help='path to save downloaded datasource')
+    parser.add_argument('--extract', help='Path to hyper file to build and/or publish', default='/Users/ludovicbreger/PycharmProjects/idxtst/test.hyper')
+    parser.add_argument('--build', help='Boolean option to build the hyper file', default=True)
+
+    parser.add_argument('--publish', help='Boolean option to publish the extract', default=False)
     parser.add_argument('--server', '-s', help='server address', default='https://public.tableau.com')
     parser.add_argument('--username', '-u', help='username to sign into server', default='breglud')
     parser.add_argument('--password', '-x', help='password to sign into server', default='LudoTableau123$')
@@ -200,38 +195,18 @@ def main():
     if args.build:
 
         df = pd.read_csv('/Users/ludovicbreger/Data/Tableau/test_df.csv')
-        df['test_date'] = '01/01/2001'
-        df['test_date2'] = '20010101'
-        df['test_date3'] = '2001-01-01 01:01:01.500'
-
-        print(df)
 
         dfutils.updateDateTypes(df)
 
         df = df.drop('next_cusip', 1)
         df = df.head(50)
-        # guessSeriesType(df, 'effective_date')
-        # guessSeriesType(df, 'A')
-        # guessSeriesType(df, 'test_date')
-        # guessSeriesType(df, 'test_date2')
-        # guessSeriesType(df, 'test_date3')
 
-        print(df.dtypes)
-        print(df.shape)
-        print(df)
-
-        # df.fillna(0, inplace=True)
-
-        extract = df2schema(df, args.build)
+        extract = df2schema(df, args.extract)
 
 
-
-    if args.publish | 1 == 1:
+    if args.publish:
         publishExtract(args)
 
-
-
-    return 0
 
 if __name__ == "__main__":
     main()
