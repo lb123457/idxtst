@@ -9,9 +9,7 @@ import sys
 import logging
 import yaml
 
-
-# Logging setup
-logger = logging.getLogger()
+from tstdata import pick_random_sector
 
 '''
     * Pass / no pass
@@ -20,29 +18,25 @@ logger = logging.getLogger()
 
 '''
 
-
-
-def __init__():
-    logger.debug('')
-
-
+#logger = logging.getLogger(__name__)
 
 
 class DCBuilder():
 
-    __type__ = 'GENERIC'
-    __type_description__ = 'This is a base generic test'
-
     def __init__(self,
                  configuration_file=None,
-                 configuration_type=None,
+                 configuration_type='yaml',
                  **kwargs):
         '''
-        Data
+        Data Catalog Builder
 
         :param configuration: yaml file that contains the configuration
         :param kwargs:
         '''
+
+        # Logging setup
+        #logger = logging.getLogger(__name__)
+
 
         if configuration_file is None:
             raise ValueError('configuration_file must be specified')
@@ -61,20 +55,12 @@ class DCBuilder():
             logger.debug('rotation = %s', self.rotation)
 
 
-        try:
-            with open(self.configuration_file) as f:
-                if self.configuration_type == 'yaml':
-                    self.config_data = yaml.load(f)
-                else:
-                    raise('Configuration type %s not recognized', self.configuration_type)
-        except:
-            raise ('Could not read configuration from %f', self.configuration_file)
-        else:
-            logger.debug('Configuration loaded from %s', self.configuration_file)
-            logger.debug(str(self.config_data))
-
-
-
+        with open(self.configuration_file, 'r') as cf:
+            try:
+                self.config_data = yaml.load(cf)
+                logger.debug(str(self.config_data))
+            except yaml.YAMLError as exc:
+                print(exc)
 
 
 
@@ -106,21 +92,56 @@ class DCReader():
         pass
 
 
+    def list_catalog(self):
+        '''
+        Prints all items in the catalog
+
+        :return: None
+        '''
+        pass
+
+    def load_catalog(self):
+        '''
+        Loads all items in the catalog
+
+        :return: A dictionary where the keys are the filenames without the parquet extension
+        '''
+        pass
+
+
+    def load_catalog_multithreaded(self):
+        pass
+
+
+    def load_item(self, item=None):
+        '''
+        Loads one items in the catalog
+
+        :item: The file name of the item in the catalog without the parquet extension
+        :return: A dictionary where the keys are the file names without the parquet extension
+        '''
+        pass
+
+    def __str__(self):
+        pass
+
+
 
 if __name__ == '__main__':
 
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     ch = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(asctime)s:%(name)s:%(funcName)s:%(levelname)s: %(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-    dc_builder = DCBuilder(configuration_file='/Users/ludovicbreger/Data/DataCatalog/test_config.yml',
-                           configuration_type='yaml',
-                           rotation=True)
+    dc_builder = DCBuilder(configuration_file='/Users/ludovicbreger/Data/DataCatalog/test_config.yml')
     dc_builder.build_data()
-
     dc_reader = DCReader(location='/Users/ludovicbreger')
+
+
+    print(pick_random_sector())
 
 
 

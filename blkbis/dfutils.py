@@ -1,6 +1,7 @@
 import logging
 import sys
 import inspect
+import re
 from dill.source import getsource
 import pandas as pd
 from datetime import datetime
@@ -55,7 +56,7 @@ def guessDateTypes(df, c):
 
 
 
-def filterOnColumn(df, column, condition, suffix='_filtered', inplace=True, **kwargs):
+def filterOnColumn(df, column, condition, result_column, condition_column, inplace=True, **kwargs):
     '''
 
     :param df: input pandas dataframe
@@ -65,13 +66,30 @@ def filterOnColumn(df, column, condition, suffix='_filtered', inplace=True, **kw
     :return: the new dataframe if inplace is True, otherwise None
     '''
 
-    logger.debug('')
-    logger.debug(getsource(condition))
-    df[column + suffix] = df[column].apply(condition)
-    df[column + suffix + '_code'] = getsource(condition)
+    if not inplace:
+        df = df.copy(deep=True)
 
-    return df
+    # If a lambda function is used for filtering, for some reason, getsource
+    # returns not just the source code of the lambda function but the function call
+    # that has the lambda function. It therefore is necessary to extract the lambda
+    # function from the call so that there is not the additional stuff.
 
+    filter_source = getsource(condition)
+    logger.debug('Original filter_source')
+    logger.debug(filter_source)
+    searchObj = re.search(r'(lambda [^,]*)([,]*)(.*)[)]{1}$', filter_source, re.M | re.I)
+
+    if searchObj:
+        filter_source = searchObj.group(1)
+
+    logger.debug('Retained filter_source')
+    logger.debug(filter_source)
+
+    df[result_column] = df[column].apply(condition)
+    df[condition_column] = getsource(condition)
+
+    if not inplace:
+        return df
 
 
 
@@ -95,8 +113,8 @@ if __name__ == "__main__":
 
 
     # A couple examples using an anonymous function
-    df = filterOnColumn(df, 'sector', lambda x: True if x == 'TELE' else False)
-    df = filterOnColumn(df, 'date', lambda x: True if x.strftime('%Y-%m-%d') in ('2018-01-01') else False)
+    filterOnColumn(df, 'sector', lambda x: True if x == 'TELE' else False, 'sector_filter_result', 'sector_filtering_method', forensics='ALL')
+    filterOnColumn(df, 'date', lambda x: True if x.strftime('%Y-%m-%d') in ('2018-01-01') else False, 'date_filter_result', 'date_filtering_method')
 
     # One example using an explicit function
     def filter_on_size(x):
@@ -105,5 +123,7 @@ if __name__ == "__main__":
         else:
             return False
 
-    df = filterOnColumn(df, 'size_mm', filter_on_size)
+    filterOnColumn(df, 'size_mm', filter_on_size, 'size_filter_result', 'size_filtering_method')
+
+    print(df.head())
 

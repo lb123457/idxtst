@@ -25,6 +25,8 @@ _MIN_FIRM_SIZE_MM = 50
 _FIRM_SIZE_SIGMA = 500
 
 
+logger = logging.getLogger(__name__)
+
 
 def create_random_id(**kwargs):
     return (''.join([random.choice(string.ascii_letters) for n in range(7)])).upper()
@@ -38,6 +40,8 @@ def create_random_universe(n=1000, **kwargs):
 
 
 def pick_random_sector():
+    logger.info('Hey')
+
     return _SECTORS[random.randint(0, len(_SECTORS)-1)]
 
 
