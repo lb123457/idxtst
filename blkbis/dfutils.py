@@ -116,9 +116,12 @@ if __name__ == "__main__":
     filterOnColumn(df, 'sector', lambda x: True if x == 'TELE' else False, 'sector_filter_result', 'sector_filtering_method', forensics='ALL')
     filterOnColumn(df, 'date', lambda x: True if x.strftime('%Y-%m-%d') in ('2018-01-01') else False, 'date_filter_result', 'date_filtering_method')
 
+    exec("""def fun():
+      print('bbb')
+    """)
     # One example using an explicit function
-    def filter_on_size(x):
-        if x >= 500:
+    def filter_on_size(x, size_limit=500):
+        if x >= size_limit:
             return True
         else:
             return False
@@ -126,4 +129,5 @@ if __name__ == "__main__":
     filterOnColumn(df, 'size_mm', filter_on_size, 'size_filter_result', 'size_filtering_method')
 
     print(df.head())
+    fun()
 
