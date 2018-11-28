@@ -1,7 +1,13 @@
 import logging
+import sys
+import inspect
+from dill.source import getsource
 import pandas as pd
+from datetime import datetime
 
-logger = logging.getLogger()
+from blkbis import tstdata
+
+logger = logging.getLogger(__name__)
 
 
 def updateDateTypes(df):
@@ -33,18 +39,71 @@ def guessDateTypes(df, c):
     # as integers will convert just fine
 
     for format, regexp in formats.items():
-
-        print('Trying to convert column "%s" to datetime using format %s' % (c, format))
+        logger.debug('Trying to convert column "%s" to datetime using format %s', c, format)
         if False not in df[c].astype(str).str.contains(regexp).tolist():
-        #if False not in df[c].astype(str).str.contains('^[1-2]\d{3}-\d{2}-\d{2}').tolist():
             try:
-                #df[c] = df[c].astype('datetime64[ns]')
                 df[c] = pd.to_datetime(df[c], format=format)
-
             except:
-                print('Type conversion failed')
+                logger.debug('Type conversion failed')
             else:
-                print('\n>>> Converted column %s to datetime using format %s\n' % (c, format))
+                logger.debug('>>> Converted column %s to datetime using format %s', c, format)
                 return
         else:
-            print('Format %s does not match values' % (format))
+            logger.debug('Format %s does not match values' % (format))
+
+
+
+
+
+def filterOnColumn(df, column, condition, suffix='_filtered', inplace=True, **kwargs):
+    '''
+
+    :param df: input pandas dataframe
+    :param column: column that is the target of the filtering
+    :param condition:
+    :param inplace: inplace condition
+    :return: the new dataframe if inplace is True, otherwise None
+    '''
+
+    logger.debug('')
+    logger.debug(getsource(condition))
+    df[column + suffix] = df[column].apply(condition)
+    df[column + suffix + '_code'] = getsource(condition)
+
+    return df
+
+
+
+
+if __name__ == "__main__":
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(funcName)s:%(levelname)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    # Creates sample data
+    test_data = tstdata.HistoricalSampleData('Test Index')
+    idx = test_data.build_index()
+
+    print(idx.idxdata['sector'].unique())
+    print(idx)
+
+    df = idx.idxdata
+
+
+    # A couple examples using an anonymous function
+    df = filterOnColumn(df, 'sector', lambda x: True if x == 'TELE' else False)
+    df = filterOnColumn(df, 'date', lambda x: True if x.strftime('%Y-%m-%d') in ('2018-01-01') else False)
+
+    # One example using an explicit function
+    def filter_on_size(x):
+        if x >= 500:
+            return True
+        else:
+            return False
+
+    df = filterOnColumn(df, 'size_mm', filter_on_size)
+
