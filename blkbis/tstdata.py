@@ -208,5 +208,16 @@ if __name__ == "__main__":
     print(df_coverage.groupby(['date'])['drop_next_period'].count())
 
 
+    # Another way to do the analysis
+    groups = []
+    names = []
 
+    for name, group in df_coverage.groupby(['date']):
+        print(name)
+        print(tabulate(group, headers='keys', tablefmt='psql'))
+        names.append(name)
+        groups.append(group)
+
+    for df in groups[1:-1]:
+        print(tabulate(df, headers='keys', tablefmt='psql'))
 
