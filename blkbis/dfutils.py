@@ -111,6 +111,16 @@ def multi_dataframe_merge(dataframe_list):
 
 
 
+def compare_groups(df1, df2):
+    '''
+    Compares two dataframes
+    :param df1:
+    :param df2:
+    :return: None
+    '''
+
+
+
 if __name__ == "__main__":
 
     logger = logging.getLogger()

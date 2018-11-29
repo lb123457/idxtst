@@ -147,6 +147,8 @@ class HistoricalSampleData:
 
 
 
+
+
 if __name__ == "__main__":
 
     # Creates sample data
@@ -220,4 +222,15 @@ if __name__ == "__main__":
 
     for df in groups[1:-1]:
         print(tabulate(df, headers='keys', tablefmt='psql'))
+
+    i = 1
+    while i < len(groups) - 1:
+        print('Previous group')
+        print(tabulate(groups[i-1], headers='keys', tablefmt='psql'))
+        print('Current group')
+        print(tabulate(groups[i], headers='keys', tablefmt='psql'))
+        print('Next group')
+        print(tabulate(groups[i+1], headers='keys', tablefmt='psql'))
+        i += 1
+
 
