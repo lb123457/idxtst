@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import random
 import string
+from tabulate import tabulate
 
 
 import blkbis.dates
@@ -97,6 +98,9 @@ class HistoricalSampleData:
                                                 self.refix_frequency,
                                                 self.first_refix)
 
+        master_list_ids = create_random_universe(n=15)
+        master_list_sectors = create_random_universe(n=15)
+
         hist = []
 
         # Loops over each industry and dates
@@ -104,8 +108,18 @@ class HistoricalSampleData:
         for date in dates:
             logging.debug('Building single period data for date %s', date)
             df = self.single_period_data()
-            df['date'] = date
-            hist.append(df)
+
+            df2 = pd.DataFrame(columns=['id', 'sector'])
+            df2['id'] = pd.Series(master_list_ids)
+            df2['sector'] = pd.Series(master_list_sectors)
+
+            import random
+
+            def some(x, n):
+                return x.ix[random.sample(x.index.tolist(), n)]
+
+            df2['date'] = date
+            hist.append(some(df2, 10))
 
         result = pd.concat(hist)
 
@@ -142,14 +156,57 @@ if __name__ == "__main__":
     print(idx.idxdata['sector'].unique())
     print(idx)
 
-    df = idx.idxdata
-    #df.reset_index(inplace=True)
-    print(df)
-    df['index2'] = df.index
-    #df.set_index(['date', 'index'], inplace=True)
-    print(df)
-    df = df[df['index'] == 0]
-    df2 = df.pivot(index=['date', 'index2'])
-    print(df2)
+
+    # Now creates a report of what goes in and out at each period
+
+    df =  idx.idxdata
+
+    df_dates = pd.DataFrame(df.date.unique(), columns=['date'])
+    df_ids = pd.DataFrame(df.id.unique(), columns=['id'])
+
+    print(df_dates)
+    print(df_ids)
+
+    df_dates['dummy'] = 1
+    df_ids['dummy'] = 1
+
+    df_ids_by_dates = df_dates.merge(df_ids, on='dummy')
+
+    print(df_ids_by_dates.shape)
+
+    df_coverage = df_ids_by_dates.merge(df, on=['date', 'id'], how='outer')
+
+    print(df_coverage)
+
+
+    # Sorts the coverage
+
+    df_coverage.sort_values(['id', 'date'], inplace=True)
+
+    df_coverage['next_date'] = df_coverage['date'].shift(-1)
+    df_coverage['previous_date'] = df_coverage['date'].shift(1)
+    df_coverage['next_id'] = df_coverage['id'].shift(-1)
+    df_coverage['previous_id'] = df_coverage['id'].shift(1)
+    df_coverage['next_sector'] = df_coverage['sector'].shift(-1)
+    df_coverage['previous_sector'] = df_coverage['sector'].shift(1)
+
+
+    df_coverage['drop_next_period'] = np.where((~df_coverage['sector'].isnull()) & (df_coverage['next_sector'].isnull()) & (df_coverage['next_id'] == df_coverage['id']), True, np.nan)
+    df_coverage['enter_this_period'] = np.where((~df_coverage['sector'].isnull()) & (df_coverage['previous_sector'].isnull()) & (df_coverage['previous_id'] == df_coverage['id']), True, np.nan)
+
+
+    print(df_coverage)
+
+
+
+    print(tabulate(df_coverage, headers='keys', tablefmt='psql'))
+
+    print(tabulate(df_coverage.sort_values(['date', 'id']), headers='keys', tablefmt='psql'))
+
+    # Create the summary count of how many securities enter and exit each period
+    print(df_coverage.groupby(['date'])['enter_this_period'].count())
+    print(df_coverage.groupby(['date'])['drop_next_period'].count())
+
+
 
 

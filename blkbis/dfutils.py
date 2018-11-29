@@ -93,6 +93,24 @@ def filterOnColumn(df, column, condition, result_column, condition_column, inpla
 
 
 
+def multi_dataframe_merge(dataframe_list):
+    '''
+    Takes a list of dataframes and merge them on their indices.
+
+    :param dataframe_list:
+    :return:
+    '''
+
+    df = dataframe_list[0]
+
+    for d in dataframe_list[1:]:
+        logger.info('Merging dataframe')
+        df = df.merge(d, left_index=True, right_index=True)
+
+    return df
+
+
+
 if __name__ == "__main__":
 
     logger = logging.getLogger()
@@ -109,7 +127,7 @@ if __name__ == "__main__":
     print(idx.idxdata['sector'].unique())
     print(idx)
 
-    df = idx.idxdata
+    df = idx.idxdata.copy(deep=True)
 
 
     # A couple examples using an anonymous function
@@ -131,3 +149,10 @@ if __name__ == "__main__":
     print(df.head())
     fun()
 
+    print(df.index)
+
+    df = idx.idxdata.copy(deep=True)
+    df.set_index(['sector', 'date'], inplace=True)
+
+    df_results = multi_dataframe_merge([df, df, df])
+    print(df_results.head())
