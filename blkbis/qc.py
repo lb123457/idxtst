@@ -186,22 +186,29 @@ class HistoricalPanelQCCheck(QCCheck):
         QCCheck.__init__(self, id, description, **kwargs)
 
 
+    def _build_date_universe(self):
+        self.__dates__ = pd.DataFrame(self.__df__.date.unique(), columns=['date'])
+
+
+    def _build_asset_universe(self):
+        self.__assets__ = pd.DataFrame(self.__df__.id.unique(), columns=['id'])
+
+
+    def _build_dates_by_assets(self):
+        self.__dates__['dummy'] = 1
+        self.__assets__['dummy'] = 1
+
+        self.__dates_by_assets__ = self.__dates__.merge(self.__assets__, on='dummy').drop(columns=['dummy'])
+
+
     def run_check(self, df):
 
-        df_dates = pd.DataFrame(df.date.unique(), columns=['date'])
-        df_ids = pd.DataFrame(df.id.unique(), columns=['id'])
+        self.__df__ = df
+        self._build_date_universe()
+        self._build_asset_universe()
+        self._build_dates_by_assets()
 
-        print(df_dates)
-        print(df_ids)
-
-        df_dates['dummy'] = 1
-        df_ids['dummy'] = 1
-
-        df_ids_by_dates = df_dates.merge(df_ids, on='dummy')
-
-        print(df_ids_by_dates.shape)
-
-        df_coverage = df_ids_by_dates.merge(df, on=['date', 'id'], how='outer')
+        df_coverage = self.__dates_by_assets__.merge(df, on=['date', 'id'], how='outer')
 
         print(df_coverage)
 
