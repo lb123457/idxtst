@@ -119,6 +119,20 @@ def compare_groups(df1, df2):
     :return: None
     '''
 
+    # Checks columns
+
+
+    # Checks column types
+
+
+    # Checks the order of columns
+
+
+    # Checks the indices
+
+
+
+
 
 
 if __name__ == "__main__":

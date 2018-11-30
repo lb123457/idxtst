@@ -11,6 +11,7 @@ from tabulate import tabulate
 import blkbis.dates
 
 from blkbis import blkidx
+from blkbis import qc
 
 _DEFAULT_NAME = 'Synthetic sample index'
 _SECTORS = ['FIN', 'UTIL', 'TELE']
@@ -163,74 +164,6 @@ if __name__ == "__main__":
 
     df =  idx.idxdata
 
-    df_dates = pd.DataFrame(df.date.unique(), columns=['date'])
-    df_ids = pd.DataFrame(df.id.unique(), columns=['id'])
-
-    print(df_dates)
-    print(df_ids)
-
-    df_dates['dummy'] = 1
-    df_ids['dummy'] = 1
-
-    df_ids_by_dates = df_dates.merge(df_ids, on='dummy')
-
-    print(df_ids_by_dates.shape)
-
-    df_coverage = df_ids_by_dates.merge(df, on=['date', 'id'], how='outer')
-
-    print(df_coverage)
-
-
-    # Sorts the coverage
-
-    df_coverage.sort_values(['id', 'date'], inplace=True)
-
-    df_coverage['next_date'] = df_coverage['date'].shift(-1)
-    df_coverage['previous_date'] = df_coverage['date'].shift(1)
-    df_coverage['next_id'] = df_coverage['id'].shift(-1)
-    df_coverage['previous_id'] = df_coverage['id'].shift(1)
-    df_coverage['next_sector'] = df_coverage['sector'].shift(-1)
-    df_coverage['previous_sector'] = df_coverage['sector'].shift(1)
-
-
-    df_coverage['drop_next_period'] = np.where((~df_coverage['sector'].isnull()) & (df_coverage['next_sector'].isnull()) & (df_coverage['next_id'] == df_coverage['id']), True, np.nan)
-    df_coverage['enter_this_period'] = np.where((~df_coverage['sector'].isnull()) & (df_coverage['previous_sector'].isnull()) & (df_coverage['previous_id'] == df_coverage['id']), True, np.nan)
-
-
-    print(df_coverage)
-
-
-
-    print(tabulate(df_coverage, headers='keys', tablefmt='psql'))
-
-    print(tabulate(df_coverage.sort_values(['date', 'id']), headers='keys', tablefmt='psql'))
-
-    # Create the summary count of how many securities enter and exit each period
-    print(df_coverage.groupby(['date'])['enter_this_period'].count())
-    print(df_coverage.groupby(['date'])['drop_next_period'].count())
-
-
-    # Another way to do the analysis
-    groups = []
-    names = []
-
-    for name, group in df_coverage.groupby(['date']):
-        print(name)
-        print(tabulate(group, headers='keys', tablefmt='psql'))
-        names.append(name)
-        groups.append(group)
-
-    for df in groups[1:-1]:
-        print(tabulate(df, headers='keys', tablefmt='psql'))
-
-    i = 1
-    while i < len(groups) - 1:
-        print('Previous group')
-        print(tabulate(groups[i-1], headers='keys', tablefmt='psql'))
-        print('Current group')
-        print(tabulate(groups[i], headers='keys', tablefmt='psql'))
-        print('Next group')
-        print(tabulate(groups[i+1], headers='keys', tablefmt='psql'))
-        i += 1
-
+    qc_engine = qc.HistoricalPanelQCCheck(id='TEST', description='This is a test')
+    qc_engine.run_check(df)
 
