@@ -111,26 +111,101 @@ def multi_dataframe_merge(dataframe_list):
 
 
 
-def compare_groups(df1, df2):
+
+def compare_dataframe(df_left, df_right):
     '''
     Compares two dataframes
     :param df1:
     :param df2:
-    :return: None
+    :return: Dictionary
     '''
 
+    comparison_results = {}
+
     # Checks columns
+    if False in (df_left.columns == df_right.columns):
+        comparison_results['columns_match'] = False
+    else:
+        comparison_results['columns_match'] = True
 
 
     # Checks column types
+    if False in (df_left.dtypes == df_right.dtypes):
+        comparison_results['column_types_match'] = False
+    else:
+        comparison_results['column_types_match'] = True
 
 
+    # Checks the values
+    if False in (df_left == df_right):
+        comparison_results['exact_match'] = False
+    else:
+        comparison_results['exact_match'] = True
+
+
+    # Other things to potentially check for...
     # Checks the order of columns
 
 
     # Checks the indices
 
+    return comparison_results
 
+
+
+def dataframe_delta(df_left, df_right, **kwargs):
+    '''
+    Computes the delta between two dataframes defined as follows.
+
+    - Dataframes need to have the exact same columns
+    - Dataframes have to have the exact same index
+    - The delta is the combination of the rows that are in df_left but not df_right,
+      the rows that are in df_right but not df_left, and the rows that are in both but with different values
+
+    :param df_left:
+    :param df_right:
+    :param kwargs:
+    :return: a dataframe that contains the difference
+    '''
+
+    # Checks if the dataframes are structurally the same
+    try:
+        if False in (df_left.columns == df_right.columns):
+            raise Exception('The left and right dataframes do not have the same columns')
+    except:
+        raise Exception('Could not compare columns')
+
+    try:
+        if False in (df_left.dtypes == df_right.dtypes):
+            raise Exception('The left and right dataframes do not have the same column types')
+    except:
+        raise Exception('Could not compare column types')
+
+    try:
+        if df_left.index.name != df_right.index.name:
+            raise Exception('The left and right dataframes do not have the same indices')
+    except:
+        raise Exception('Could not compare indices')
+
+    # Merges the two dataframes
+    df = df_left.merge(df_right, left_index=True, right_index=True, how='outer', indicator=True)
+
+    # Isolates the rows that are not a match and identifies the columns that are at fault
+    cnames = []
+
+    for c in df.columns:
+        if c.endswith('_x'):
+            cname = c + ' matches ' + c[:-2] + '_y'
+            cnames.append(cname)
+            df[cname] = (df[c] == df[c[:-2] + '_y'])
+
+    # Now consolidates the results of all comparison
+    df['columns_matches_number'] = df[cnames].sum(axis=1)
+    df['columns_matches_all'] = df[cnames].all(axis=1)
+
+    df = df.reindex(sorted(df.columns), axis=1)
+
+    return df
 
 
 
@@ -161,22 +236,9 @@ if __name__ == "__main__":
     exec("""def fun():
       print('bbb')
     """)
-    # One example using an explicit function
-    def filter_on_size(x, size_limit=500):
-        if x >= size_limit:
-            return True
-        else:
-            return False
 
-    filterOnColumn(df, 'size_mm', filter_on_size, 'size_filter_result', 'size_filtering_method')
 
-    print(df.head())
-    fun()
+    # Checks if
+    print(compare_dataframe(df, df))
 
-    print(df.index)
-
-    df = idx.idxdata.copy(deep=True)
-    df.set_index(['sector', 'date'], inplace=True)
-
-    df_results = multi_dataframe_merge([df, df, df])
-    print(df_results.head())
+    print(df)
