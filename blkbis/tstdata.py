@@ -54,8 +54,68 @@ def pick_random_sectors(n=1000, **kwargs):
     return l
 
 
+'''
+Shows how to go from an effective_date to a start_date and end_date
+dataset
+'''
 
 
+def strTimeProp(start, end, format, prop):
+    """
+    Get a time at a proportion of a range of two formatted times.
+
+    start and end should be strings specifying times formated in the
+    given format (strftime-style), giving an interval [start, end].
+    prop specifies how a proportion of the interval to be taken after
+    start.  The returned time will be in the specified format.
+    """
+
+    stime = time.mktime(time.strptime(start, format))
+    etime = time.mktime(time.strptime(end, format))
+
+    ptime = stime + prop * (etime - stime)
+
+    return time.strftime(format, time.localtime(ptime))
+    # return ptime
+
+
+def randomDate(start, end):
+    return strTimeProp(start, end, '%m/%d/%Y', random.random())
+
+
+# Creates a map between the integers and the cusip
+def somefunction(keyFunction, values):
+    return dict((v, keyFunction(v)) for v in values)
+
+
+df = pd.DataFrame(np.random.randint(0, 5, size=(20, 1)), columns=['cusip_index'])
+df['value'] = np.random.randn(20)
+
+df['effective_date'] = df['cusip_index'].apply(lambda x: randomDate("1/1/2008", "1/1/2029"))
+
+cusip_map = somefunction(lambda a: ''.join(random.choices(string.ascii_uppercase + string.digits, k=9)), range(5))
+
+df['cusip'] = df['cusip_index'].map(cusip_map)
+
+df.sort_values(['cusip', 'effective_date'], inplace=True)
+
+df[['next_effective_date', 'next_cusip']] = df.shift(-1)[['effective_date', 'cusip']]
+
+df['next_effective_date'] = np.where(df['cusip'] != df['next_cusip'], pd.to_datetime('21001231', format='%Y%m%d'),
+                                     df['next_effective_date'])
+
+df['effective_date'] = pd.to_datetime(df['effective_date'])
+df['next_effective_date'] = pd.to_datetime(df['next_effective_date'])
+
+df.sort_values(['cusip', 'effective_date'], inplace=True)
+
+df.drop(columns=['next_cusip', 'cusip_index'], axis=1, inplace=True)
+df = df.reset_index(drop=True)
+df = df.reindex_axis(sorted(df.columns), axis=1)
+
+df = df.reindex(columns=(['value'] + list([a for a in df.columns if a != 'value'])))
+
+df
 
 class HistoricalSampleData:
 

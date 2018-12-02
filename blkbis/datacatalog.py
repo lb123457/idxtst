@@ -127,6 +127,10 @@ class DCReader():
 
 
 
+def dummy_function(arg1=1, arg2=2):
+    print(arg1)
+    print(arg2)
+
 if __name__ == '__main__':
 
     logger = logging.getLogger()
@@ -143,6 +147,7 @@ if __name__ == '__main__':
 
     print(pick_random_sector())
 
+    exec('dummy_function()')
 
 
 

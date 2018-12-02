@@ -208,6 +208,44 @@ def dataframe_delta(df_left, df_right, **kwargs):
     return df
 
 
+def color_rows(s):
+    df = s.copy(deep=True)
+
+    df['_merge'] = df['_merge'].astype(str)
+
+    # Starts with a little column manipulation
+    cols = df.columns
+
+    # Looks for all the original columns
+    c_map = {}
+    original_columns = []
+    columns_x = []
+    columns_y = []
+    columns_c = []
+
+    for c in df.columns:
+        if c.endswith('_x'):
+            original_columns.append(c[0:-2])
+            columns_x.append(c)
+            columns_y.append(c[0:-2] + '_y')
+            columns_c.append(c + ' matches ' + c[:-2] + '_y')
+            c_map[c + ' matches ' + c[:-2] + '_y'] = [c, c + ' matches ' + c[:-2] + '_y', c[:-2] + '_y']
+
+    for index, row in df.iterrows():
+        if not row['columns_matches_all']:
+            df.loc[index, :] = 'color: red'
+
+            # If not all column match we highlight in red the triplets of
+            # c_x, c_x matches c_y and c_y that are not a match.
+            for c in columns_c:
+                if not row[c]:
+                    df.loc[index, c_map[c]] = 'background-color: #EEBBBB; color: red'
+        else:
+            df.loc[index, :] = 'background-color: #EEEEEE'
+
+    return df
+
+
 
 
 if __name__ == "__main__":
