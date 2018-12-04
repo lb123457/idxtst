@@ -2,6 +2,46 @@
 
 Data Catalog Module
 
+Data Catalog Description
+
+The Data Catalog offers a common persistence layer for data that resides elsewhere
+in multiple locations, predominantly in databases.
+
+Building the catalog involves the following steps.
+
+The first time around, the seed dataset is created by running the specified query.
+
+Datasets that are created in Change Data Capture mode keep track of all the changes that are
+observed in the database. This is appropriate then the database table itself does not keep track of
+changes. Once the initial datasets are created, subsequent runs the exact same queries and compare the
+results with what was saved in the previous run. Some audit columns are added to the original dataset.
+
+For datasets that are not created in Change Data Capture mode, a new file that created from the
+database query every time the datalog is updated. This is most appropriate when either there is no need
+to worry about changes, or when the database table itself contains the history of changes.
+Note that there are various options to keep a backup of the previous files, and analyze differences.
+
+Curated versions of the data are derived from the raw data. The processing that is applied depends on the
+dataset and most often includes columns renaming and additions.
+
+
+Configuration
+-------------
+
+Configuration is stored in a yaml file.
+Database connection information is stored in a separate yaml file
+
+
+Data Organization
+-----------------
+
+All datasets are saved in parquet format.
+
+
+
+
+
+
 '''
 
 import os

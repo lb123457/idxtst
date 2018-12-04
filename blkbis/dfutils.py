@@ -92,6 +92,50 @@ def filterOnColumn(df, column, condition, result_column, condition_column, inpla
         return df
 
 
+class DFFilter:
+
+    __type__ = 'GENERIC'
+    __type_description__ = 'This is a base generic test'
+
+    def __init__(self,
+                 function=None,
+                 description=None,
+                 **kwargs):
+        '''
+        This is a filter that is designed to be applied to dataframe.
+
+        :param function:
+        :param description:
+        :param kwargs:
+        '''
+
+        if function is None:
+            raise ValueError('"function" must be specified')
+        else:
+            self.function = function
+
+        if description is None:
+            raise ValueError('"description" must be specified')
+        else:
+            self.description = description
+
+
+
+    # Applies the filter to the specified dataframe and columns
+    def apply_filter(self, df, columns=None):
+        '''
+        Applies the filter to the dataframe df.
+        The parameter columns needs to be specified.
+
+        :param df:
+        :param columns:
+        :return: the dataframe with the filter applied
+        '''
+        pass
+
+
+
+
 
 def multi_dataframe_merge(dataframe_list):
     '''
@@ -208,10 +252,19 @@ def dataframe_delta(df_left, df_right, **kwargs):
     return df
 
 
+
 def color_rows(s):
+    '''
+    Utility to change the stype of the rendered dataframe.
+    See https://pandas.pydata.org/pandas-docs/stable/style.html for some good background information.
+
+    :param s:
+    :return: the style
+    '''
     df = s.copy(deep=True)
 
-    df['_merge'] = df['_merge'].astype(str)
+    if '_merge' in df.columns:
+        df['_merge'] = df['_merge'].astype(str)
 
     # Starts with a little column manipulation
     cols = df.columns
@@ -239,13 +292,15 @@ def color_rows(s):
             # c_x, c_x matches c_y and c_y that are not a match.
             for c in columns_c:
                 if not row[c]:
-                    df.loc[index, c_map[c]] = 'background-color: #EEBBBB; color: red'
+                    df.loc[index, c_map[c]] = 'background-color: #EEBBBB; color: blue; border-left: 1px'
         else:
             df.loc[index, :] = 'background-color: #EEEEEE'
 
     return df
 
 
+def dummy():
+    pass
 
 
 if __name__ == "__main__":
@@ -279,4 +334,4 @@ if __name__ == "__main__":
     # Checks if
     print(compare_dataframe(df, df))
 
-    print(df)
+    print(color_rows(df))
