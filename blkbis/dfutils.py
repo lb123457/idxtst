@@ -131,7 +131,8 @@ class DFFilter:
         :param columns:
         :return: the dataframe with the filter applied
         '''
-        pass
+
+        df[columns] = df[columns].apply(self.function)
 
 
 
