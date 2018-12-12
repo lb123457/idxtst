@@ -60,6 +60,80 @@ from tstdata import pick_random_sector
 
 #logger = logging.getLogger(__name__)
 
+# If the query is specified, we cannot easily extract the table name
+# from the query as there could be joins, and it is safer to explicitly
+# give the table name
+
+
+def config_to_path(config, root):
+    '''
+    Uses the configuration information to create the path
+    From configuration to full dataset path:
+
+    <root_path>/<access>/<type>
+
+    <root_path>
+    <access> is either public or private
+    <type> is raw, curated, derived
+
+    Data that is raw is often extracted from existing servers, and it is convenient to organize it as follows:
+    <environment>/<server>/<database>/<dataset>
+
+    '''
+
+    if 'access' in config.keys():
+        access = config['public_access']
+    else:
+        access = 'public'
+
+    if 'type' in config.keys():
+        type = config['type']
+    else:
+        type = 'raw'
+
+    if 'environment' not in config.keys():
+        raise Error('The configuration needs to contain the environment')
+    else:
+        environment = config['environment']
+
+    if 'server' not in config.keys():
+        raise Error('The configuration needs to contain the server')
+    else:
+        server = config['server']
+
+    if 'table' in config.keys():
+        database = config['table'].split('.')[0]
+        user = config['table'].split('.')[1]
+        table = config['table'].split('.')[2]
+        dataset = table
+    elif 'dataset' in config.keys():
+        dataset = config['dataset']
+        if 'database' not in config.keys():
+            raise ValueError('The configuration contains the dataset but it does not contain the database')
+        else:
+            database = config['database']
+    else:
+        raise ValueError('The configuration needs to contain either the table or the dataset')
+
+    # Now we have everything to specify the path
+
+    return os.path.join(root, access, type, environment, server, database, dataset + '.parquet')
+
+
+# Creates some simple test configurations
+
+config = [{'table': 'secdb.dbo.sec_master',
+           'environment': 'ACE',
+           'server': 'DSREAD'},
+
+          {'sql': 'select top 10 * from secdb.dbo.sec_master',
+           'dataset': 'sec_master_gov',
+           'database': 'secdb',
+           'environment': 'ACE',
+           'server': 'DSREAD'}]
+
+print(config_to_path(config[0], '/GAAR/bis/data/dwh'))
+print(config_to_path(config[1], '/GAAR/bis/data/dwh'))
 
 class DCBuilder():
 
@@ -184,10 +258,6 @@ if __name__ == '__main__':
     dc_builder.build_data()
     dc_reader = DCReader(location='/Users/ludovicbreger')
 
-
-    print(pick_random_sector())
-
-    exec('dummy_function()')
 
 
 
