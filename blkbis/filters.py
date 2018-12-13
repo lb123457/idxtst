@@ -80,7 +80,8 @@ class DFFilter():
 
 
 
-    def check_columns(self, df, columns=None):
+
+    def check_columns(self, df, columns=None, abort_if_test_fails=True):
         '''
         Uses the function that defines the filter and applies it on the list of
         columns to check if all values verify the condition.
@@ -90,10 +91,20 @@ class DFFilter():
         :return: True or False
         '''
 
+        if not columns:
+            columns = df.columns
+
+        for c in columns:
+            if False in df[c].apply(self.function):
+                raise ValueError('Dataframe contains values that do not satisfy the condition')
+
+
+
 
 if __name__ == '__main__':
 
     df = pd.DataFrame([1, 2, 3], columns=['v'])
+    df_copy = df.copy(deep=True)
 
     f2 = DFFilter(lambda x: x >= 2, 'Dummy function 2')
     f3 = DFFilter(lambda x: x >= 3, 'Dummy function 3')
@@ -104,8 +115,11 @@ if __name__ == '__main__':
 
     print(df)
 
-    df = f3.filter_columns(df, columns=['v'], add_function_description=True)
+    df = f3.filter_columns(df, columns=['v'], filter_results=True)
 
     print(df)
+
+    f3.check_columns(df_copy, columns=['v'])
+
 
 
