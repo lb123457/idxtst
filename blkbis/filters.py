@@ -1,7 +1,17 @@
+import pandas as pd
+import inspect
+
 '''
-Package used to do either filter out dataframe values based
-or verify that values are within certain bounds. In both cases,
-this boils down to analyzing the value in a set of columns
+The DFFilter class. It is used primarily for two purposes:
+
+(1) Filter out dataframes so that columns satisfy some specific constraints.
+In this case, there are options to choose to only assess whether value satisf
+
+(2) Verify that values in a dataframe satisfy specific constraints.
+
+A filter is essentially a function that is applied to the dataframe, enriched  with
+a description of what it does to help keep track of all the processing that went into
+building the dataset.
 
 '''
 
@@ -17,10 +27,22 @@ class DFFilter():
 
         if description is None:
             raise ValueError('"description" must be set')
+        else:
+            self.description = description
+
+
+    def __str__(self):
+        '''
+        This defines what is showed by the print function.
+        :return:
+        '''
+
+        return self.description + str(inspect.getsource(self.function))
 
 
 
-    def filter_columns(self, df, columns=None, inplace=False):
+    def filter_columns(self, df, columns=None, inplace=False, add_function_description=False, filter_results=False,
+                       function_ext=None, results_ext=None):
         '''
         Uses the function that defines the filter and applies it on the list of
         columns to remove all values that do not match.
@@ -30,8 +52,31 @@ class DFFilter():
         :return:
         '''
 
+        if not columns:
+            columns = df.columns
+
+        if not results_ext:
+            results_ext = '_filter_result'
+
+        if not function_ext:
+            function_ext = '_filter_function'
+
+        if inplace:
+            df0 = df
+        else:
+            df0 = df.copy(deep=True)
+
         for c in columns:
-            df[c] = df[c].apply(self.function)
+            df0[c + results_ext] = df[c].apply(self.function)
+
+            if filter_results:
+                df0 = df0[df0[c + results_ext]]
+
+            if add_function_description:
+                df0[c + function_ext] = str(inspect.getsource(self.function))
+
+        if not inplace:
+            return df0
 
 
 
@@ -44,3 +89,23 @@ class DFFilter():
         :param columns:
         :return: True or False
         '''
+
+
+if __name__ == '__main__':
+
+    df = pd.DataFrame([1, 2, 3], columns=['v'])
+
+    f2 = DFFilter(lambda x: x >= 2, 'Dummy function 2')
+    f3 = DFFilter(lambda x: x >= 3, 'Dummy function 3')
+
+    print(df)
+
+    f2.filter_columns(df, inplace=True, add_function_description=True)
+
+    print(df)
+
+    df = f3.filter_columns(df, columns=['v'], add_function_description=True)
+
+    print(df)
+
+
