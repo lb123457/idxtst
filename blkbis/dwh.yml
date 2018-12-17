@@ -1,4 +1,5 @@
 # These variables are replaced at run time
+symbols: [$DWHROOT]
 
 metadata:
     - description: This is a test configuration file
@@ -21,8 +22,8 @@ datasets:
             arguments:
                 arg1: 1
                 arg2: 99
-        raw_parquet_output: dwh_root/raw/ACE/ACEHAL/secdb/sec_master.parquet
-        curated_parquet_output: dwh_root/curated/ACE/ACEHAL/secdb/sec_master.parquet
+        raw_parquet_output: $DWHROOT/raw/ACE/ACEHAL/secdb/sec_master.parquet
+        curated_parquet_output: $DWHROOT/curated/ACE/ACEHAL/secdb/sec_master.parquet
 
 
     credit_rating_hist:
