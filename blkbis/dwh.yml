@@ -1,0 +1,39 @@
+# These variables are replaced at run time
+
+metadata:
+    - description: This is a test configuration file
+    - business: BDS
+
+
+datasets:
+
+    sec_master:
+        table: secdb.dbo.sec_master
+        sql: select top 10 *
+             from secdb.dbo.sec_master
+        servers:
+            - ACEHAL
+            - EDWBFM2
+        frequency: DAILY
+        change_data_capture: True
+        post_processing:
+            function: postproc_sec_master
+            arguments:
+                arg1: 1
+                arg2: 99
+        raw_parquet_output: dwh_root/raw/ACE/ACEHAL/secdb/sec_master.parquet
+        curated_parquet_output: dwh_root/curated/ACE/ACEHAL/secdb/sec_master.parquet
+
+
+    credit_rating_hist:
+        table: secdb.dbo.credit_rating_hist
+        servers:
+            - ACEHAL
+            - EDWBFM2
+        frequency: DAILY
+        change_data_capture: False
+        post_processing:
+            function: postproc_credit_rating_hist
+            arguments:
+                arg1: 1
+                arg2: 99
