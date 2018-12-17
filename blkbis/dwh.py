@@ -57,9 +57,10 @@ _logger = logging.getLogger(__name__)
 # give the table name
 
 
-def config_to_path(config, root):
+def config_to_path(dwhItemConfig, dwhRoot):
     '''
-    Uses the configuration information to create the path
+    Uses the configuration information to create the location where the output
+    data should be saved.
     From configuration to full dataset path:
 
     <root_path>/<access>/<type>
@@ -69,63 +70,44 @@ def config_to_path(config, root):
     <type> is raw, curated, derived
 
     Data that is raw is often extracted from existing servers, and it is convenient to organize it as follows:
-    <environment>/<server>/<database>/<dataset>
+    <server>/<database>/<dataset>
 
     '''
 
-    if 'access' in config.keys():
-        access = config['public_access']
+    if 'access' in dwhItemConfig.keys():
+        access = dwhItemConfig['public_access']
     else:
         access = 'public'
 
-    if 'type' in config.keys():
-        type = config['type']
+    if 'type' in dwhItemConfig.keys():
+        type = dwhItemConfig['type']
     else:
         type = 'raw'
 
-    if 'environment' not in config.keys():
-        raise Error('The configuration needs to contain the environment')
+    if 'server' not in dwhItemConfig.keys():
+        raise ValueError('The configuration needs to contain the server')
     else:
-        environment = config['environment']
+        server = dwhItemConfig['server']
 
-    if 'server' not in config.keys():
-        raise Error('The configuration needs to contain the server')
-    else:
-        server = config['server']
-
-    if 'table' in config.keys():
-        database = config['table'].split('.')[0]
-        user = config['table'].split('.')[1]
-        table = config['table'].split('.')[2]
+    if 'table' in dwhItemConfig.keys():
+        database = dwhItemConfig['table'].split('.')[0]
+        user = dwhItemConfig['table'].split('.')[1]
+        table = dwhItemConfig['table'].split('.')[2]
         dataset = table
-    elif 'dataset' in config.keys():
-        dataset = config['dataset']
-        if 'database' not in config.keys():
+    elif 'dataset' in dwhItemConfig.keys():
+        dataset = dwhItemConfig['dataset']
+        if 'database' not in dwhItemConfig.keys():
             raise ValueError('The configuration contains the dataset but it does not contain the database')
         else:
-            database = config['database']
+            database = dwhItemConfig['database']
     else:
         raise ValueError('The configuration needs to contain either the table or the dataset')
 
     # Now we have everything to specify the path
+    output_file = os.path.join(dwhRoot, access, type, server, database, dataset + '.parquet')
+    _logger.debug('Output location for this dataset is %s', output_file)
+    return output_file
 
-    return os.path.join(root, access, type, environment, server, database, dataset + '.parquet')
-
-
-# Creates some simple test configurations
-
-config = [{'table': 'secdb.dbo.sec_master',
-           'environment': 'ACE',
-           'server': 'DSREAD'},
-
-          {'sql': 'select top 10 * from secdb.dbo.sec_master',
-           'dataset': 'sec_master_gov',
-           'database': 'secdb',
-           'environment': 'ACE',
-           'server': 'DSREAD'}]
-
-print(config_to_path(config[0], '/GAAR/bis/data/dwh'))
-print(config_to_path(config[1], '/GAAR/bis/data/dwh'))
 
 
 class DWHBuilder():
@@ -200,6 +182,7 @@ def postproc_credit_rating_hist(**kwargs):
     print(kwargs)
 
 
+
 class DWHItem():
 
     def __init__(self, dataset):
@@ -217,6 +200,14 @@ class DWHItem():
 
 
     def get_data(self):
+
+        for server in self.configuration['servers']:
+
+            config = self.configuration
+            config['server'] = server
+
+            # Gets the output location
+            print(config_to_path(config, '/GAAR/bis/data/dwh'))
         pass
 
 

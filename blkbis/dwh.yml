@@ -27,9 +27,9 @@ datasets:
 
     credit_rating_hist:
         table: secdb.dbo.credit_rating_hist
-        env: ACE
         servers:
             - ACEHAL
+            - EDWBFM2
         frequency: DAILY
         change_data_capture: False
         post_processing:
