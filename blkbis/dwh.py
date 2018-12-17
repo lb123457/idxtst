@@ -55,9 +55,39 @@ _logger = logging.getLogger(__name__)
 # If the query is specified, we cannot easily extract the table name
 # from the query as there could be joins, and it is safer to explicitly
 # give the table name
+            
+            
+def dict_value_str_replace(d, old, new):
+    """Find and replace value sub-strings in a dictionary
 
+    Args:
+        d: Dictionary which is modified in place
+        old: Old string
+        new: New string
 
-def config_to_path(dwhItemConfig, dwhRoot):
+    Example:
+        d = {'key': '$ROOT/path'}
+        dict_value_str_replace({'key': '$ROOT/path'}, '$ROOT', '/absolute')
+
+        Results in: {'key': '/absolute/path'}
+    """
+    if isinstance(d, dict):
+        for k, v in d.items():
+            if isinstance(v, dict):
+                dict_value_str_replace(v, old, new)
+            elif isinstance(v, list):
+                dict_value_str_replace(v, old, new)
+            elif isinstance(v, str):
+                d[k] = v.replace(old, new)
+    elif isinstance(d, list):
+        for i, v in enumerate(d):
+            if isinstance(v, dict):
+                dict_value_str_replace(v, old, new)
+            elif isinstance(v, str):
+                d[i] = v.replace(old, new)
+                
+                
+def _config_to_path(dwhItemConfig, dwhRoot):
     '''
     Uses the configuration information to create the location where the output
     data should be saved.
@@ -111,10 +141,17 @@ def config_to_path(dwhItemConfig, dwhRoot):
 
 
 class DWHBuilder():
+    
+    @staticmethod
+    def _resolve_symbols(pipeline, symbols):
+        for symbol, value in symbols.items():
+            dict_value_str_replace(pipeline, symbol, value)
+            
 
     def __init__(self,
                  configuration_file=None,
                  configuration_type='yaml',
+                 symbols=None,
                  **kwargs):
         '''
         Data Warehouse Components Builder
@@ -139,6 +176,9 @@ class DWHBuilder():
             self.configuration_type = configuration_type
             _logger.debug('Configuration type = %s', self.configuration_type)
 
+        if symbols is not None:
+            self._resolve_symbols(pipeline, symbols)
+            
         if 'rotation' in kwargs:
             self.rotation = kwargs['rotation']
             _logger.debug('rotation = %s', self.rotation)
