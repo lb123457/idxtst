@@ -89,34 +89,9 @@ def somefunction(keyFunction, values):
     return dict((v, keyFunction(v)) for v in values)
 
 
-df = pd.DataFrame(np.random.randint(0, 5, size=(20, 1)), columns=['cusip_index'])
-df['value'] = np.random.randn(20)
 
-df['effective_date'] = df['cusip_index'].apply(lambda x: randomDate("1/1/2008", "1/1/2029"))
 
-cusip_map = somefunction(lambda a: ''.join(random.choices(string.ascii_uppercase + string.digits, k=9)), range(5))
 
-df['cusip'] = df['cusip_index'].map(cusip_map)
-
-df.sort_values(['cusip', 'effective_date'], inplace=True)
-
-df[['next_effective_date', 'next_cusip']] = df.shift(-1)[['effective_date', 'cusip']]
-
-df['next_effective_date'] = np.where(df['cusip'] != df['next_cusip'], pd.to_datetime('21001231', format='%Y%m%d'),
-                                     df['next_effective_date'])
-
-df['effective_date'] = pd.to_datetime(df['effective_date'])
-df['next_effective_date'] = pd.to_datetime(df['next_effective_date'])
-
-df.sort_values(['cusip', 'effective_date'], inplace=True)
-
-df.drop(columns=['next_cusip', 'cusip_index'], axis=1, inplace=True)
-df = df.reset_index(drop=True)
-df = df.reindex_axis(sorted(df.columns), axis=1)
-
-df = df.reindex(columns=(['value'] + list([a for a in df.columns if a != 'value'])))
-
-df
 
 class HistoricalSampleData:
 
@@ -140,20 +115,16 @@ class HistoricalSampleData:
         logging.info(str(self))
 
 
-    def show_info(self):
-        logging.debug('')
-        print('Index Name       = ' + self.name)
-        print('Start Date       = ' + str(self.start_date))
-        print('End Date         = ' + str(self.end_date))
-        print('Data Frequency   = ' + self.data_frequency)
-        print('Refix Frequency  = ' + self.refix_frequency)
+    def __str__(self):
+        return 'Index Name       = ' + self.name + 'Start Date       = ' + str(self.start_date) + 'End Date         = ' + str(self.end_date) + 'Data Frequency   = ' + self.data_frequency + 'Refix Frequency  = ' + self.refix_frequency
+
 
 
     def build_index(self):
         logging.info('Building index...')
         if not hasattr(self, 'name'):
             self.__init__()
-        self.show_info()
+
         dates = blkbis.dates.create_date_series(self.start_date,
                                                 self.end_date,
                                                 self.data_frequency,
@@ -161,7 +132,7 @@ class HistoricalSampleData:
                                                 self.first_refix)
 
         master_list_ids = create_random_universe(n=15)
-        master_list_sectors = create_random_universe(n=15)
+        master_list_sectors = pick_random_sectors(n=15)
 
         hist = []
 
@@ -212,6 +183,35 @@ class HistoricalSampleData:
 
 
 if __name__ == "__main__":
+
+    df = pd.DataFrame(np.random.randint(0, 5, size=(20, 1)), columns=['cusip_index'])
+    df['value'] = np.random.randn(20)
+
+    df['effective_date'] = df['cusip_index'].apply(lambda x: randomDate("1/1/2008", "1/1/2029"))
+
+    cusip_map = somefunction(lambda a: ''.join(random.choices(string.ascii_uppercase + string.digits, k=9)), range(5))
+
+    df['cusip'] = df['cusip_index'].map(cusip_map)
+
+    df.sort_values(['cusip', 'effective_date'], inplace=True)
+
+    df[['next_effective_date', 'next_cusip']] = df.shift(-1)[['effective_date', 'cusip']]
+
+    df['next_effective_date'] = np.where(df['cusip'] != df['next_cusip'], pd.to_datetime('21001231', format='%Y%m%d'),
+                                         df['next_effective_date'])
+
+    df['effective_date'] = pd.to_datetime(df['effective_date'])
+    df['next_effective_date'] = pd.to_datetime(df['next_effective_date'])
+
+    df.sort_values(['cusip', 'effective_date'], inplace=True)
+
+    df.drop(columns=['next_cusip', 'cusip_index'], axis=1, inplace=True)
+    df = df.reset_index(drop=True)
+    df = df.reindex_axis(sorted(df.columns), axis=1)
+
+    df = df.reindex(columns=(['value'] + list([a for a in df.columns if a != 'value'])))
+
+    df
 
     # Creates sample data
     test_data = HistoricalSampleData('Test Index')
