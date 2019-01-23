@@ -1,8 +1,16 @@
 
 import os
 import logging
-from shutil import copyfile
+import pandas as pd
 import datetime
+from shutil import copyfile
+
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from blkbis import qc
+from blkbis import tstdata
 
 
 # Set up logging to file - see previous section for more details
@@ -65,6 +73,10 @@ def rotate_file(file, **kwargs):
 
 def check_latest_backup(file, **kwargs):
     last_backup = get_latest_backup(file, **kwargs)
+
+    if last_backup is None:
+        return
+
     _logger.debug('Checking latest backup %s of file %s', last_backup, file)
     df_file = load_file(file)
     df_backup = load_file(last_backup)
@@ -95,6 +107,9 @@ def get_latest_backup(file, **kwargs):
 
     files = [os.path.join(file_dirname, f) for f in os.listdir(file_dirname) if
              os.path.isfile(os.path.join(file_dirname, f)) and f.startswith(file_basename) and '.back.' in f]
+
+    if len(files) == 0:
+        return None
 
     # Picks up the back up that has the latest date
     df = pd.DataFrame(files, columns=['filename'])
@@ -142,6 +157,8 @@ class FileComparator(object):
         if not os.path.isfile(file2):
             raise FileNotFoundError('File %s does not exist', file2)
 
+        _logger.debug('%s & %s', file1, file2)
+
         self.file1 = file1
         self.file2 = file2
 
@@ -181,14 +198,80 @@ class DFComparator(object):
         return self.df2.columns.tolist() == self.df1.columns.tolist()
 
     def have_same_column_types(self, **kwargs):
-        return not False in pd.DataFrame(df1.dtypes) == pd.DataFrame(df2.dtypes)
+        return not False in self.df1.dtypes == self.df2.dtypes
 
     def have_same_rowcount(self, **kwargs):
         return self.df1.shape[0] == self.df2.shape[0]
 
 
 
+class DFWriter(object):
+
+    def __init__(self, **kwargs):
+        pass
+
+
+class DFParquetWriter(DFWriter):
+
+    def __init__(self):
+        pass
+
+    def write_file(self, df, file, **kwargs):
+        pass
+
+
+class DFCSVWriter(DFWriter):
+
+    def __init__(self):
+        pass
+
+    def write_file(self, df, file, **kwargs):
+        pass
+
+
+
+
 if __name__ == '__main__':
 
-    f = rotate_file('test')
-    _logger.info(f)
+    # Example of how to use the above
+
+    # Set up logging to file - see previous section for more details
+    logging.basicConfig(level=logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+    # Define a handler which writes INFO messages or higher to the sys.stderr
+    console_hdlr = logging.StreamHandler()
+    console_hdlr.setFormatter(formatter)
+
+    # Define a handler which writes to a file
+    logfile = rotate_file('test.log', clean_old_files='all')
+    file_hdlr = logging.FileHandler(logfile, mode='w')
+    file_hdlr.setFormatter(formatter)
+
+    _logger = logging.getLogger()
+    _logger.handlers = []
+    _logger.addHandler(console_hdlr)
+    _logger.addHandler(file_hdlr)
+
+    _logger.info('test')
+    _logger.debug('test')
+
+    # Example of how to rotate a data file
+    df1 = pd.DataFrame({'one': [-1, np.nan, 2.5],
+                        'two': ['foo', 'bar', 'baz'],
+                        'three': [True, False, True]},
+                       index=list('abc'))
+
+    table = pa.Table.from_pandas(df1)
+
+    pq.write_table(table, rotate_file('example.parquet', clean_old_files='none', check_latest_backup=True))
+
+    df2 = pd.DataFrame({'one': [-1, np.nan, 2.5],
+                        'two': ['foo', 'bar', 'baz'],
+                        'four': [True, False, True]},
+                       index=list('abd'))
+
+    table = pa.Table.from_pandas(df2)
+
+    pq.write_table(table, rotate_file('example.parquet', clean_old_files='none', check_latest_backup=True))
