@@ -300,6 +300,43 @@ def color_rows(s):
     return df
 
 
+    k = 5
+    N = 10
+
+    # http://docs.scipy.org/doc/numpy/reference/generated/numpy.random.randint.html
+    # http://stackoverflow.com/a/2257449/2901002
+
+    df1 = pd.DataFrame({'T': range(1, N + 1, 1),
+                       'V': np.random.randint(k, k + 100, size=N),
+                       'I': 'A'})
+
+    df2 = pd.DataFrame({'T': range(1, N + 1, 1),
+                       'V': np.random.randint(k, k + 100, size=N),
+                       'I': 'B'})
+
+    df = df1.append(df2)
+    print(df)
+
+    ewm = df.ewm(halflife=1)
+    #ewm = df.ewm(com=5)
+    print(ewm)
+    print(ewm.mean())
+
+
+    # Calculate relative and absolute differences
+    df['dV_abs'] = df['V'] - df['V'].shift(1)
+    df['dV_rel'] = (df['V'] - df['V'].shift(1)) / df['V']
+
+
+
+    # z-score
+    df['dV_abs_z'] = (df.dV_abs - df.dV_abs.mean()) / df.dV_abs.std(ddof=0)
+    df['dV_rel_z'] = (df.dV_rel - df.dV_rel.mean()) / df.dV_rel.std(ddof=0)
+    print(df.head())
+    print(df.head().shift(1))
+    print(df.count())
+    print(df.std())
+
 def dummy():
     pass
 

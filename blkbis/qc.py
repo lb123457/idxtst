@@ -16,35 +16,6 @@ from tabulate import tabulate
 _logger = logging.getLogger()
 
 
-'''
-
-A QC is defined by:
-
-- The static description of the model
-
-    * qc_model_type
-    * qc_model_type_description
-    * qc_model_subtype
-    * qc_model_subtype_description
-    * qc_application
-    
-- The static configuration of the model
-
-    * The configuration is model dependent
-    * In some cases, the configuration may not exist
-
-- Some information about the data
-
-    * This is nice to have but it may not be complete
-    * Examples are the start and end date, the sample size
-    
-- The results
-
-    * Pass / no pass
-    * Level of abnormality
-    * ...
-
-'''
 
 # Defines the metadata items that are valid for an item.
 
@@ -62,95 +33,38 @@ def full_qc(idx):
 
 
 
-class QCCheck:
+class QCCheckError(Exception):
+    def __init__(self, check):
+        # Call the base class constructor with the parameters it needs
+        super().__init__(check.__exception_msg__)
 
-    __id__ = 'BASE'
-    __description__ = 'This is a base generic test'
+        # Now for your custom code...
+        self.errors = check.exceptions
 
-    def __init__(self, **kwargs):
-        """
-        This is the base class for all QC Checks classes
+        self.dispatch_error()
 
-        :param kwargs:
-        """
-        pass
+        check.add_diagnostics()
 
-
-    def run_check(self, df, **kwargs):
-        """
-        Runs the actual check. This is implemented at the leaf class level.
-
-        :param df:
-        :param kwargs:
-        :return:
-        """
-        pass
+    def dispatch_error(self):
+        print('Will implement dispatching later')
 
 
-    # Overloads the print statement
-    def __str__(self):
-        s =  'Id               = ' + self.__id__ + '\n'
-        s += 'Description = ' + self.__description__ + '\n'
-
-        return s
-
-
-    def upload_check_definition(self):
-        """
-        Saves the check definition in the persistence layer
-
-        :return:
-        """
-        pass
-
-
-    def download_check_definition(self):
-        """
-        Retrieves the check definition from the persistence layer
-
-        :return:
-        """
-        pass
-
-
-    def save_check_results(self):
-        """
-        Saves the results of the QC check.
-        This is just a placeholder for now.
-
-        :return:
-        """
-        pass
-
-
-
-class ValueCheck(QCCheck):
+class QCCheck(object):
     """
-    Verifies that all values in a column satisfy a condition defined as a function
+    This is the parent class for all QC checks.
+
+    Checks are performed within the children classes.
+    The parent class implements various
     """
-    __id__ = 'VALUE_CHECK'
-    __description__ = 'This is a base generic test'
 
-    def __init__(self,
-                 function=None,
-                 **kwargs):
-        """
-        This is the base class for all QC Checks classes
+    # When set to True, forces all failed checks to throw an exception
+    force_strict = None
 
-        :param kwargs:
-        """
-
-        if function is None:
-            raise ValueError('Please specify a function')
-        else:
-            self.function = function
+    def __init__(self):
+        pass
 
 
-
-    def run_check(self,
-                  df,
-                  columns=None,
-                  **kwargs):
+    def run_check(self, *args, **kwargs):
         """
         Takes a dataframe and
 
@@ -159,61 +73,112 @@ class ValueCheck(QCCheck):
         :return:
         """
 
-        for c in columns:
-            if False in df[c].apply(self.function):
-                df[c + '_value_check'] = df[c].apply(self.function)
-                print(tabulate(df[~df[c + '_value_check']], headers='keys', tablefmt='psql'))
-                raise ValueError('Dataframe contains values that do not satisfy the condition')
+        # Registers the check if necessary
+        self.register()
+
+        self.get_exceptions(*args, **kwargs)
+
+        # Prints the exceptions and either raise an exception of sends a warning
+        if not self.successful:
+            self.save_results()
+            self.show_exceptions()
+
+            if self.force_strict or (self.strict and self.force_strict is None):
+                raise QCCheckError(self)
+
+            else:
+                _logger.warning('Dataframe contains values that do not satisfy the condition')
+
+
+    def register(self):
+        print('Will implement registration later')
+
+
+    def show_exceptions(self):
+        print(' '.join(self.__description__.split()))
+
+        if self.exceptions is not None:
+            print(tabulate(self.exceptions, headers='keys', tablefmt='psql'))
+
+        if hasattr(self, 'exceptions_explanation') and self.exceptions_explanation is not None:
+            print(self.exceptions_explanation)
+
+
+    def add_diagnostics(self):
+        print('This is the parent add_diagnostics')
+
+
+    def save_results(self):
+        print('Will implement results save later')
+
+
+
+class QCValueCheck(QCCheck):
+
+    __description__ = """
+                      This is a value based QC check. It consists in verifying that columns in a pandas 
+                      dataframe satisfy a condition defined in a function.
+                      """
+
+    __exception_msg__ = 'Some values in the dataframe column(s) do not satisfy the condition'
+
+    def __init__(self, function=None, strict=True, **kwargs):
+        if function is None:
+            raise ValueError('Please specify a function')
+        else:
+            self.function = function
+
+        self.strict = strict
+
+
+    def get_exceptions(self, df, cols=None, **kwargs):
+        self.successful = df[cols].apply(self.function).all(axis=1).all()
+        if not self.successful:
+            self.exceptions = df[~df[cols].apply(self.function).all(axis=1)]
+
+    def add_diagnostics(self):
+        print('Will add diagnostics later')
+
+
+class QCColumnsSumCheck(QCCheck):
+
+    __description__ = 'Verifies that a set of columns add up to a specified value'
+
+    __exception_msg__ = 'Some rows in the dataframe do not sum up to the specified value.'
+
+    def __init__(self, strict=True, **kwargs):
+        self.strict = strict
+
+    def get_exceptions(self, df, cols=None, value=None, **kwargs):
+        func = lambda x: x == value
+        self.successful = df[cols].sum(axis=1).apply(func).all()
+        if not self.successful:
+            self.exceptions = df[~df[cols].sum(axis=1).apply(func)]
+
+    def add_diagnostics(self):
+        print('Will add diagnostics later')
+
+
+class QCCorrCheck(QCCheck):
+
+    def __init__(self):
+        pass
+
 
 
 class TimeSeriesQCCheck(QCCheck):
-    """
-    This is the base class for all Time Series QC Checks classes
-    """
-
-    __id__ = 'TIME_SERIES'
-    __description__ = 'This check uses a times series to identify anomalous values'
-
-    def __init__(self,
-                 id=None,
-                 description=None,
-                 **kwargs):
-
-        QCCheck.__init__(self, **kwargs)
-
+    pass
 
 
 
 class CrossSectionalQCCkeck(QCCheck):
-
-    __id__ = 'CROSS_SECTIONAL'
-    __description__ = 'This check uses a cross-sectional analysis to identify anomalous values'
-
-    def __init__(self,
-                 id=None,
-                 description=None,
-                 **kwargs):
-
-        QCCheck.__init__(self, id, description, **kwargs)
-
-
-
-
-
+    pass
 
 
 
 class XRayQCCheck(QCCheck):
+    pass
 
-    __id__ = 'XRAY'
-    __description__ = 'This check runs a comprehensive set of checks'
-
-    def __init__(self,
-                 id=None,
-                 description=None,
-                 **kwargs):
-
-        QCCheck.__init__(self, id, description, **kwargs)
         
 
 
@@ -328,57 +293,6 @@ if __name__ == "__main__":
     _logger.addHandler(ch)
 
 
-    k = 5
-    N = 10
-
-    # http://docs.scipy.org/doc/numpy/reference/generated/numpy.random.randint.html
-    # http://stackoverflow.com/a/2257449/2901002
-
-    df1 = pd.DataFrame({'T': range(1, N + 1, 1),
-                       'V': np.random.randint(k, k + 100, size=N),
-                       'I': 'A'})
-
-    df2 = pd.DataFrame({'T': range(1, N + 1, 1),
-                       'V': np.random.randint(k, k + 100, size=N),
-                       'I': 'B'})
-
-    df = df1.append(df2)
-    print(df)
-
-    ewm = df.ewm(halflife=1)
-    #ewm = df.ewm(com=5)
-    print(ewm)
-    print(ewm.mean())
-
-
-    # Calculate relative and absolute differences
-    df['dV_abs'] = df['V'] - df['V'].shift(1)
-    df['dV_rel'] = (df['V'] - df['V'].shift(1)) / df['V']
-
-
-
-    # z-score
-    df['dV_abs_z'] = (df.dV_abs - df.dV_abs.mean()) / df.dV_abs.std(ddof=0)
-    df['dV_rel_z'] = (df.dV_rel - df.dV_rel.mean()) / df.dV_rel.std(ddof=0)
-    print(df.head())
-    print(df.head().shift(1))
-    print(df.count())
-    print(df.std())
-
-
-    for name, group in df.groupby('I'):
-        print(name)
-        print(group)
-        print(type(group))
-
-
-    qc1 = QCCheck(id='Gen1', description='This is a generic dummy check')
-    print(qc1)
-
-    qc2 = TimeSeriesQCCheck(id='Gen2', description='This is a generic time series check')
-    print(qc2)
-
-
     # Creates sample data
     test_data = tstdata.HistoricalSampleData('Test Index')
     idx = test_data.build_index()
@@ -386,21 +300,15 @@ if __name__ == "__main__":
     print(idx.idxdata['sector'].unique())
     print(idx)
 
+    df = idx.idxdata.copy(deep=True)
 
-    # Now creates a report of what goes in and out at each period
-    df =  idx.idxdata
-    print(df)
+    qc = QCValueCheck(lambda x: x != 'UTIL', strict=False)
+    qc.run_check(df, cols=['sector'])
 
-    qc = HistoricalPanelQCCheck(id='test', description='test')
-    qc.run_check(df)
+    df['value'] = 1
 
-
-    qc = ValueCheck(lambda x: x != 'UTIL')
-    df.reset_index(inplace=True)
-    qc.run_check(df, columns=['sector'])
-
-
-
+    qc = QCColumnsSumCheck(strict=True)
+    qc.run_check(df, cols=['value'], value=0)
 
 
 
