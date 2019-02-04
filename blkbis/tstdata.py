@@ -1,3 +1,5 @@
+import os
+import sys
 import logging
 import datetime
 from datetime import datetime
@@ -28,7 +30,8 @@ _MIN_FIRM_SIZE_MM = 50
 _FIRM_SIZE_SIGMA = 500
 
 
-logger = logging.getLogger(__name__)
+# Logging setup
+_logger = logging.getLogger()
 
 
 def create_random_id(**kwargs):
@@ -43,8 +46,6 @@ def create_random_universe(n=1000, **kwargs):
 
 
 def pick_random_sector():
-    logger.info('Hey')
-
     return _SECTORS[random.randint(0, len(_SECTORS)-1)]
 
 
@@ -90,10 +91,7 @@ def somefunction(keyFunction, values):
 
 
 
-
-
-
-class HistoricalSampleData:
+class HistoricalTstData:
 
     'Sample class that creates historical index for performance and QC testing'
 
@@ -112,7 +110,7 @@ class HistoricalSampleData:
         self.refix_frequency = refix_frequency
         self.first_refix = first_refix
 
-        logging.info(str(self))
+        _logger.info(str(self))
 
 
     def __str__(self):
@@ -121,7 +119,7 @@ class HistoricalSampleData:
 
 
     def build_index(self):
-        logging.info('Building index...')
+        _logger.info('Building index...')
         if not hasattr(self, 'name'):
             self.__init__()
 
@@ -139,8 +137,7 @@ class HistoricalSampleData:
         # Loops over each industry and dates
 
         for date in dates:
-            logging.debug('Building single period data for date %s', date)
-            df = self.single_period_data()
+            _logger.debug('Building single period data for date %s', date)
 
             df2 = pd.DataFrame(columns=['id', 'sector'])
             df2['id'] = pd.Series(master_list_ids)
@@ -154,9 +151,10 @@ class HistoricalSampleData:
             df2['date'] = date
             hist.append(some(df2, 10))
 
-        result = pd.concat(hist)
+        df = pd.concat(hist)
+        df.set_index(['date', 'id'], inplace=True)
 
-        idx = blkidx.BlkIdx(self.name, dataframe=result)
+        idx = blkidx.BlkIdx(self.name, dataframe=df)
 
         return idx
 
@@ -180,51 +178,19 @@ class HistoricalSampleData:
 
 
 
-
-
 if __name__ == "__main__":
 
-    df = pd.DataFrame(np.random.randint(0, 5, size=(20, 1)), columns=['cusip_index'])
-    df['value'] = np.random.randn(20)
-
-    df['effective_date'] = df['cusip_index'].apply(lambda x: randomDate("1/1/2008", "1/1/2029"))
-
-    cusip_map = somefunction(lambda a: ''.join(random.choices(string.ascii_uppercase + string.digits, k=9)), range(5))
-
-    df['cusip'] = df['cusip_index'].map(cusip_map)
-
-    df.sort_values(['cusip', 'effective_date'], inplace=True)
-
-    df[['next_effective_date', 'next_cusip']] = df.shift(-1)[['effective_date', 'cusip']]
-
-    df['next_effective_date'] = np.where(df['cusip'] != df['next_cusip'], pd.to_datetime('21001231', format='%Y%m%d'),
-                                         df['next_effective_date'])
-
-    df['effective_date'] = pd.to_datetime(df['effective_date'])
-    df['next_effective_date'] = pd.to_datetime(df['next_effective_date'])
-
-    df.sort_values(['cusip', 'effective_date'], inplace=True)
-
-    df.drop(columns=['next_cusip', 'cusip_index'], axis=1, inplace=True)
-    df = df.reset_index(drop=True)
-    df = df.reindex_axis(sorted(df.columns), axis=1)
-
-    df = df.reindex(columns=(['value'] + list([a for a in df.columns if a != 'value'])))
-
-    df
+    _logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(funcName)s:%(levelname)s: %(message)s')
+    ch.setFormatter(formatter)
+    _logger.addHandler(ch)
 
     # Creates sample data
-    test_data = HistoricalSampleData('Test Index')
+    test_data = HistoricalTstData('Test Index')
     idx = test_data.build_index()
 
     print(idx.idxdata['sector'].unique())
     print(idx)
 
-
-    # Now creates a report of what goes in and out at each period
-
-    df =  idx.idxdata
-
-    qc_engine = qc.HistoricalPanelQCCheck(id='TEST', description='This is a test')
-    qc_engine.run_check(df)
 

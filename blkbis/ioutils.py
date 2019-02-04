@@ -174,62 +174,6 @@ class FileComparator(object):
         return self.df_comparator.have_same_rowcount()
 
 
-class DFComparator(object):
-
-    def __init__(self, df1, df2, **kwargs):
-        self.df1 = df1
-        self.df2 = df2
-
-    def compare_dataframes(df1, df2, **kwargs):
-        """
-        Things to compare and results format:
-        -
-        """
-        pass
-
-    def have_same_columns(self, **kwargs):
-        if self.have_same_column_names():
-            if self.have_same_column_types():
-                return True
-        else:
-            return False
-
-    def have_same_column_names(self, **kwargs):
-        return self.df2.columns.tolist() == self.df1.columns.tolist()
-
-    def have_same_column_types(self, **kwargs):
-        return not False in self.df1.dtypes == self.df2.dtypes
-
-    def have_same_rowcount(self, **kwargs):
-        return self.df1.shape[0] == self.df2.shape[0]
-
-
-
-class DFWriter(object):
-
-    def __init__(self, **kwargs):
-        pass
-
-
-class DFParquetWriter(DFWriter):
-
-    def __init__(self):
-        pass
-
-    def write_file(self, df, file, **kwargs):
-        pass
-
-
-class DFCSVWriter(DFWriter):
-
-    def __init__(self):
-        pass
-
-    def write_file(self, df, file, **kwargs):
-        pass
-
-
-
 
 if __name__ == '__main__':
 

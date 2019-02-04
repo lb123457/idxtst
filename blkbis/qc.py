@@ -8,29 +8,16 @@ import sys
 import logging
 import pandas as pd
 import numpy as np
+import pickle
 from blkbis import blkidx
 from blkbis import tstdata
+from blkbis import dfutils
+from blkbis import dates
+from blkbis import filters
 from tabulate import tabulate
 
 # Logging setup
 _logger = logging.getLogger()
-
-
-
-# Defines the metadata items that are valid for an item.
-
-__METADATA_ITEMS__ = ['__id__', '__type__', '__type_description__']
-
-
-
-def __init__():
-    _logger.debug('')
-
-
-def full_qc(idx):
-    _logger.debug('Running full QC')
-
-
 
 
 class QCCheckError(Exception):
@@ -80,7 +67,7 @@ class QCCheck(object):
 
         # Prints the exceptions and either raise an exception of sends a warning
         if not self.successful:
-            self.save_results()
+            #self.save_check()
             self.show_exceptions()
 
             if self.force_strict or (self.strict and self.force_strict is None):
@@ -98,62 +85,80 @@ class QCCheck(object):
         print(' '.join(self.__description__.split()))
 
         if self.exceptions is not None:
-            print(tabulate(self.exceptions, headers='keys', tablefmt='psql'))
+            if isinstance(self.exceptions, pd.core.frame.DataFrame):
+                print(tabulate(self.exceptions, headers='keys', tablefmt='psql'))
+            else:
+                _logger.warning(self.exceptions)
 
         if hasattr(self, 'exceptions_explanation') and self.exceptions_explanation is not None:
             print(self.exceptions_explanation)
 
 
     def add_diagnostics(self):
-        print('This is the parent add_diagnostics')
+        _logger.debug('This is the parent add_diagnostics')
 
 
-    def save_results(self):
-        print('Will implement results save later')
+    def save_check(self, filename):
+        self.pickle_file = filename
+        _logger.debug('Saving to %s', filename)
+        with open(self.pickle_file, 'wb') as outfile:
+            pickle.dump(self, outfile)
+
+
+    @staticmethod
+    def load_check(filename):
+        _logger.debug('Loading check from %s', filename)
+        with open(filename, 'rb') as infile:
+            file = open(filename, 'rb')
+            return pickle.load(file)
+
 
 
 
 class QCValueCheck(QCCheck):
 
-    __description__ = """
-                      This is a value based QC check. It consists in verifying that columns in a pandas 
-                      dataframe satisfy a condition defined in a function.
-                      """
-
+    __description__ = 'Verifies a pandas dataframe columns satisfy a condition defined in a function.'
     __exception_msg__ = 'Some values in the dataframe column(s) do not satisfy the condition'
 
-    def __init__(self, function=None, strict=True, **kwargs):
-        if function is None:
-            raise ValueError('Please specify a function')
-        else:
+    def __init__(self, function=None, filter=None, strict=True, **kwargs):
+
+        if function is not None and filter is not None:
+            raise ValueError('The function and filter arguments cannot be both passed')
+        elif function is None and filter is None:
+            raise ValueError('Please specify either a function or a filter')
+        elif function is not None:
             self.function = function
+        elif isinstance(filter, filters.DFFilter):
+            self.filter = filter
+            self.function = filter.function
+        else:
+            raise ValueError('Something is wrong with the arguments')
 
         self.strict = strict
 
-
-    def get_exceptions(self, df, cols=None, **kwargs):
-        self.successful = df[cols].apply(self.function).all(axis=1).all()
+    def get_exceptions(self, df, columns=None, **kwargs):
+        self.successful = df[columns].apply(self.function).all(axis=1).all()
         if not self.successful:
-            self.exceptions = df[~df[cols].apply(self.function).all(axis=1)]
+            self.exceptions = df[~df[columns].apply(self.function).all(axis=1)]
 
     def add_diagnostics(self):
         print('Will add diagnostics later')
 
 
+
 class QCColumnsSumCheck(QCCheck):
 
     __description__ = 'Verifies that a set of columns add up to a specified value'
-
     __exception_msg__ = 'Some rows in the dataframe do not sum up to the specified value.'
 
     def __init__(self, strict=True, **kwargs):
         self.strict = strict
 
-    def get_exceptions(self, df, cols=None, value=None, **kwargs):
+    def get_exceptions(self, df, columns=None, value=None, **kwargs):
         func = lambda x: x == value
-        self.successful = df[cols].sum(axis=1).apply(func).all()
+        self.successful = df[columns].sum(axis=1).apply(func).all()
         if not self.successful:
-            self.exceptions = df[~df[cols].sum(axis=1).apply(func)]
+            self.exceptions = df[~df[columns].sum(axis=1).apply(func)]
 
     def add_diagnostics(self):
         print('Will add diagnostics later')
@@ -284,6 +289,58 @@ class HistoricalPanelQCCheck(QCCheck):
 
 
 
+
+class StructuralIndexCheck(QCCheck):
+
+    __description__ = 'Verifies that the dataframe is indexed as expected'
+    __exception_msg__ = 'The dataframe is not indexed as expected'
+
+    def __init__(self, strict=True, **kwargs):
+        self.strict = strict
+
+    def get_exceptions(self, df, columns=None, **kwargs):
+        self.successful = df.index.names[0] == 'date'
+        if not self.successful:
+            if df.index.names[0] is None:
+                self.exceptions = 'There is no index defined for this dataframe'
+            else:
+                self.exceptions = 'The level 0 index for this dataframe is ' + df.index.names[0] + ' and we expect "date"'
+
+    def add_diagnostics(self):
+        print('Will add diagnostics later')
+
+
+
+class StructuralColumnsCheck(QCCheck):
+
+    __description__ = 'Verifies that the columns are all in lowercase'
+    __exception_msg__ = 'One or more column names are not in lowercase'
+
+    def __init__(self, strict=True, **kwargs):
+        self.strict = strict
+
+    def get_exceptions(self, df, columns=None, **kwargs):
+        if columns is None:
+            columns = df.columns
+
+        df_cols = pd.DataFrame(df[columns].columns, columns=['original_column'])
+
+        df_cols['lower_column_name'] = df_cols['original_column'].str.lower()
+        df_cols['column_is_lowercase'] = np.where(df.columns != df.columns.str.lower(), False, True)
+
+        self.successful = df_cols['column_is_lowercase'].all()
+
+        if not self.successful:
+            self.exceptions = df_cols[~df_cols['column_is_lowercase']]
+
+    def add_diagnostics(self):
+        print('Will add diagnostics later')
+
+
+
+
+
+
 if __name__ == "__main__":
 
     _logger.setLevel(logging.DEBUG)
@@ -294,7 +351,7 @@ if __name__ == "__main__":
 
 
     # Creates sample data
-    test_data = tstdata.HistoricalSampleData('Test Index')
+    test_data = tstdata.HistoricalTstData('Test Index')
     idx = test_data.build_index()
 
     print(idx.idxdata['sector'].unique())
@@ -302,21 +359,29 @@ if __name__ == "__main__":
 
     df = idx.idxdata.copy(deep=True)
 
-    qc = QCValueCheck(lambda x: x != 'UTIL', strict=False)
-    qc.run_check(df, cols=['sector'])
+    qc = QCValueCheck(function=lambda x: x != 'UTIL', strict=False)
+    qc.run_check(df, columns=['sector'])
 
     df['value'] = 1
 
-    qc = QCColumnsSumCheck(strict=True)
-    qc.run_check(df, cols=['value'], value=0)
+    qc = QCColumnsSumCheck(strict=False)
+    qc.run_check(df, columns=['value'], value=0)
 
 
+    # Creates a filter and uses it for QC
+    filter = filters.DFFilter(lambda x: x != 'UTIL', 'Dummy function 2')
 
+    qc = QCValueCheck(filter=filter, strict=False)
+    qc.run_check(df, columns=['sector'])
 
+    # Tests the structural checks
+    df2 = df.rename(columns={'sector': 'Sector'})
+    qc = StructuralColumnsCheck(strict=False)
+    qc.run_check(df2)
 
+    qc = StructuralIndexCheck(strict=False)
+    df.reset_index(inplace=True)
+    qc.run_check(df)
 
-
-
-
-
-
+    qc.save_check('qc.pkl')
+    qc_retrieved = QCCheck.load_check('qc.pkl')
