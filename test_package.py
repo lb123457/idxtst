@@ -26,7 +26,7 @@ logger.info('Starting test...')
 
 if __name__ == "__main__":
 
-    test_index = tstdata.HistoricalSampleData('Test Index')
+    test_index = tstdata.HistoricalTstData('Test Index')
     test_index.show_info()
 
     idx = test_index.build_index()

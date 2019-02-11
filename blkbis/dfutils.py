@@ -2,7 +2,6 @@ import logging
 import sys
 import inspect
 import re
-from dill.source import getsource
 import pandas as pd
 from datetime import datetime
 
@@ -74,7 +73,7 @@ def filterOnColumn(df, column, condition, result_column, condition_column, inpla
     # that has the lambda function. It therefore is necessary to extract the lambda
     # function from the call so that there is not the additional stuff.
 
-    filter_source = getsource(condition)
+    filter_source = inspect.getsource(condition)
     logger.debug('Original filter_source')
     logger.debug(filter_source)
     searchObj = re.search(r'(lambda [^,]*)([,]*)(.*)[)]{1}$', filter_source, re.M | re.I)
@@ -86,7 +85,7 @@ def filterOnColumn(df, column, condition, result_column, condition_column, inpla
     logger.debug(filter_source)
 
     df[result_column] = df[column].apply(condition)
-    df[condition_column] = getsource(condition)
+    df[condition_column] = inspect.getsource(condition)
 
     if not inplace:
         return df
@@ -157,7 +156,7 @@ def multi_dataframe_merge(dataframe_list):
 
 
 
-def compare_dataframe(df_left, df_right):
+def compare_dataframe(df_left, df_right, *kwargs):
     '''
     Compares two dataframes
     :param df1:
@@ -165,27 +164,39 @@ def compare_dataframe(df_left, df_right):
     :return: Dictionary
     '''
 
-    comparison_results = {}
+    resuts = {}
 
     # Checks columns
-    if False in (df_left.columns == df_right.columns):
-        comparison_results['columns_match'] = False
+    if df_left.columns.tolist() == df_right.columns.tolist():
+        # Column names are the same and in the same order
+        resuts['column_names_match'] = True
+        resuts['column_order_match'] = True
+    elif set(df_left.columns.tolist()) - set(df_right.columns.tolist()) == set(df_right.columns.tolist()) - set(df_left.columns.tolist()):
+        resuts['column_names_match'] = True
+        resuts['column_order_match'] = False
     else:
-        comparison_results['columns_match'] = True
-
+        resuts['column_names_match'] = False
+        resuts['column_order_match'] = False
+        if len(set(df_left.columns.tolist()) - set(df_right.columns.tolist())):
+            logger.warning('The following columns are in the left dataframe but not in the right--')
+            logger.warning(set(df_left.columns.tolist()) - set(df_right.columns.tolist()))
+        if len(set(df_right.columns.tolist()) - set(df_left.columns.tolist())):
+            logger.warning('The following columns are in the right dataframe but not in the left')
+            logger.warning(set(df_right.columns.tolist()) - set(df_left.columns.tolist()))
 
     # Checks column types
-    if False in (df_left.dtypes == df_right.dtypes):
-        comparison_results['column_types_match'] = False
+    if df_left.dtypes.tolist() != df_right.dtypes.tolist():
+        resuts['column_types_match'] = False
     else:
-        comparison_results['column_types_match'] = True
+        resuts['column_types_match'] = True
 
 
     # Checks the values
-    if False in (df_left == df_right):
-        comparison_results['exact_match'] = False
+    if resuts['column_names_match'] & resuts['column_order_match'] & resuts['column_types_match']:
+        if False not in (df_left == df_right):
+            resuts['exact_match'] = True
     else:
-        comparison_results['exact_match'] = True
+        resuts['exact_match'] = False
 
 
     # Other things to potentially check for...
@@ -194,7 +205,7 @@ def compare_dataframe(df_left, df_right):
 
     # Checks the indices
 
-    return comparison_results
+    return resuts
 
 
 
@@ -418,14 +429,14 @@ if __name__ == "__main__":
 
     # A couple examples using an anonymous function
     filterOnColumn(df, 'sector', lambda x: True if x == 'TELE' else False, 'sector_filter_result', 'sector_filtering_method', forensics='ALL')
-    filterOnColumn(df, 'date', lambda x: True if x.strftime('%Y-%m-%d') in ('2018-01-01') else False, 'date_filter_result', 'date_filtering_method')
 
     exec("""def fun():
       print('bbb')
     """)
 
 
-    # Checks if
-    print(compare_dataframe(df, df))
+    # Compares dataframes
+    df2 = df.copy()
+    df2['c'] = 'new columns'
+    print(compare_dataframe(df, df2))
 
-    print(color_rows(df))
