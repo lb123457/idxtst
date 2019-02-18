@@ -1,7 +1,7 @@
 """
 QC Package.
 
-Thgis is test documentation.
+This is test documentation.
 """
 
 

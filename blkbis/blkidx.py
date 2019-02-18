@@ -22,6 +22,10 @@ def __init__(self):
 
 
 class BlkUniverse(object):
+
+    @staticmethod
+    def from_file():
+        pass
     
     def __init__(self):
         pass
@@ -30,6 +34,9 @@ class BlkUniverse(object):
     """
     Container for a point-in-time universe
     """
+
+
+
 
 
 class BlkUniverseTimeSeries(BlkUniverse):
@@ -135,6 +142,12 @@ class BlkIndex(BlkUniverse):
         pass
 
 
+    @staticmethod
+    def create_from_aladdin(index_code, **kwargs):
+        return BlkIndex()
+        pass
+
+
 
     def __init__(self, **kwargs):
 
@@ -216,10 +229,10 @@ class BlkFIIndex(BlkIndex, BlkFIUniverse):
 
 if __name__ == "__main__":
 
-    idx = BlkIndex('Top level index', description='This is a dummy index')
-    idx.print()
+    idx = BlkIndex(name='Top level index', description='This is a dummy index')
 
-    idx = BlkEQIndex('Equity index', description='This is a dummy equity index')
-    idx.print()
+    idx = BlkEQIndex(name='Equity index', description='This is a dummy equity index')
 
-    print()
+    idx = BlkIndex.create_from_aladdin(index_code='')
+
+    print(idx)

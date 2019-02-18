@@ -1,0 +1,19 @@
+# These variables are replaced at run time
+
+metadata:
+    - description: This is a test file for filter configuration
+    - business: BDS
+
+
+filters:
+
+    filter1:
+        function: 'lambda x: x < 0'
+        description: Ludo1
+
+    filter2:
+        function: >
+                  def retain_positive(x):
+                     x > 0
+        description: Ludo2
+
