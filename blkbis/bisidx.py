@@ -21,7 +21,7 @@ def __init__(self):
 #######################################################################
 
 
-class BlkUniverse(object):
+class BISUniverse(object):
 
     @staticmethod
     def from_file():
@@ -39,7 +39,7 @@ class BlkUniverse(object):
 
 
 
-class BlkUniverseTimeSeries(BlkUniverse):
+class BISUniverseTimeSeries(BISUniverse):
     """
     Container for a set of point-in-time universes.
     Class variables:
@@ -60,7 +60,7 @@ class BlkUniverseTimeSeries(BlkUniverse):
         pass
 
 
-class BlkFIUniverse(BlkUniverse):
+class BISFIUniverse(BISUniverse):
 
     def __init__(self):
         pass
@@ -81,7 +81,7 @@ class BlkFIUniverse(BlkUniverse):
         pass
     
     
-class BlkEQUniverse(BlkUniverse):
+class BISEQUniverse(BISUniverse):
 
     def __init__(self):
         pass
@@ -94,7 +94,7 @@ class BlkEQUniverse(BlkUniverse):
 #######################################################################
 
 
-class BlkIndexTimeSeries(BlkUniverseTimeSeries):
+class BISIndexTimeSeries(BISUniverseTimeSeries):
     """
     Container for a set of universes each associated with a date.
     Class variables:
@@ -117,7 +117,7 @@ class BlkIndexTimeSeries(BlkUniverseTimeSeries):
 
 
 
-class BlkIndex(BlkUniverse):
+class BISIndex(BISUniverse):
 
     """
     Parent class for indices. Class variables:
@@ -144,7 +144,7 @@ class BlkIndex(BlkUniverse):
 
     @staticmethod
     def create_from_aladdin(index_code, **kwargs):
-        return BlkIndex()
+        return BISIndex()
         pass
 
 
@@ -208,18 +208,18 @@ class BlkIndex(BlkUniverse):
 
 
 
-class BlkEQIndex(BlkIndex, BlkEQUniverse):
+class BISEQIndex(BISIndex, BISEQUniverse):
 
     def __init__(self, **kwargs):
-        BlkIndex.__init__(self, **kwargs)
+        BISIndex.__init__(self, **kwargs)
 
 
 
 
-class BlkFIIndex(BlkIndex, BlkFIUniverse):
+class BISFIIndex(BISIndex, BISFIUniverse):
 
     def __init__(self, **kwargs):
-        BlkIndex.__init__(self, **kwargs)
+        BISIndex.__init__(self, **kwargs)
 
 
 
@@ -229,10 +229,10 @@ class BlkFIIndex(BlkIndex, BlkFIUniverse):
 
 if __name__ == "__main__":
 
-    idx = BlkIndex(name='Top level index', description='This is a dummy index')
+    idx = BISIndex(name='Top level index', description='This is a dummy index')
 
-    idx = BlkEQIndex(name='Equity index', description='This is a dummy equity index')
+    idx = BISEQIndex(name='Equity index', description='This is a dummy equity index')
 
-    idx = BlkIndex.create_from_aladdin(index_code='')
+    idx = BISIndex.create_from_aladdin(index_code='')
 
     print(idx)

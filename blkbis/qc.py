@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import pickle
 import inspect
-from blkbis import blkidx
+from blkbis import bisidx
 from blkbis import tstdata
 from blkbis import dfutils
 from blkbis import dates

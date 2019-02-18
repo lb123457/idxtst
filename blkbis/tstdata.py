@@ -13,7 +13,7 @@ from tabulate import tabulate
 
 import blkbis.dates
 
-from blkbis import blkidx
+from blkbis import bisidx
 from blkbis import qc
 
 _DEFAULT_NAME = 'Synthetic sample index'
@@ -154,7 +154,7 @@ class HistoricalTstData:
         df = pd.concat(hist)
         df.set_index(['date', 'id'], inplace=True)
 
-        idx = blkidx.BlkIdx(self.name, dataframe=df)
+        idx = bisidx.BlkIdx(self.name, dataframe=df)
 
         return idx
 
