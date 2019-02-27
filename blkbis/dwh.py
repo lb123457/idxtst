@@ -47,14 +47,20 @@ import sys
 import logging
 import yaml
 import pprint
-
-
+import base64
 
 _logger = logging.getLogger(__name__)
 
 # If the query is specified, we cannot easily extract the table name
 # from the query as there could be joins, and it is safer to explicitly
 # give the table name
+
+
+def encode(pwd):
+    return base64.b64encode(pwd.encode())
+
+def decode(pwd):
+    return base64.b64decode(pwd.encode())
 
 
 def config_to_path(dwhItemConfig, dwhRoot):
