@@ -352,6 +352,21 @@ def dummy():
     pass
 
 
+def calc_groupby_zscores(df, groupby=None, columns=None):
+    df_mean = df.groupby(groupby)[columns].mean().add_suffix('_mean').reset_index()
+    df_std = df.groupby(groupby)[columns].std().add_suffix('_std').reset_index()
+
+    df_res = df.merge(df_mean, left_on=groupby, right_on=groupby, how='outer')
+    df_res = df_res.merge(df_std, left_on=groupby, right_on=groupby, how='outer')
+
+    for c in columns:
+        df_res[c + '_zscore'] = (df_res[c] - df_res[c + '_mean']) / df_res[c + '_std']
+
+    return df_res
+
+
+calc_groupby_zscores(df3, groupby=['I'], columns=['T', 'V'])
+
 class DFComparator(object):
 
     def __init__(self, df1, df2, **kwargs):

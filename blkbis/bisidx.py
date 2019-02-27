@@ -8,7 +8,7 @@ This is a module to create and manipulate indices.
 import os
 import sys
 import logging
-import pandas
+import pandas as pd
 
 
 logger = logging.getLogger()
@@ -138,7 +138,7 @@ class BISIndex(BISUniverse):
 
 
     @staticmethod
-    def create_from_dataframe(file, **kwargs):
+    def create_from_dataframe(df, **kwargs):
         pass
 
 
@@ -163,8 +163,6 @@ class BISIndex(BISUniverse):
         # If a pandas dataframe is given, then uses it to create the index
         if 'dataframe' in kwargs:
             self.idxdata = kwargs['dataframe']
-
-
 
 
 
@@ -218,8 +216,17 @@ class BISEQIndex(BISIndex, BISEQUniverse):
 
 class BISFIIndex(BISIndex, BISFIUniverse):
 
-    def __init__(self, **kwargs):
+    @staticmethod
+    def from_dataframe(df):
+        idx = BISFIIndex(df)
+        return idx
+
+    def __init__(self, df, **kwargs):
         BISIndex.__init__(self, **kwargs)
+        self.df = df
+
+
+
 
 
 
@@ -234,5 +241,7 @@ if __name__ == "__main__":
     idx = BISEQIndex(name='Equity index', description='This is a dummy equity index')
 
     idx = BISIndex.create_from_aladdin(index_code='')
+
+    idx = BISFIIndex.from_dataframe(pd.DataFrame())
 
     print(idx)

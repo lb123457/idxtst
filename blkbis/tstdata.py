@@ -154,7 +154,7 @@ class HistoricalTstData:
         df = pd.concat(hist)
         df.set_index(['date', 'id'], inplace=True)
 
-        idx = bisidx.BlkIdx(self.name, dataframe=df)
+        idx = bisidx.BISIndex(self.name, dataframe=df)
 
         return idx
 
