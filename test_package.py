@@ -6,7 +6,7 @@ import pandas as pd
 logger = logging.getLogger()
 
 
-from blkbis import blkidx
+from blkbis import bisidx
 from blkbis import tstdata
 from blkbis import qc
 
@@ -31,10 +31,10 @@ if __name__ == "__main__":
 
     idx = test_index.build_index()
 
-    idx = blkidx.BlkIdx('Top level index', description='This is a dummy index')
+    idx = bisidx.BlkIdx('Top level index', description='This is a dummy index')
     print(idx)
 
-    idx = blkidx.BlkEQIdx('Equity index', description='This is a dummy equity index')
+    idx = bisidx.BlkEQIdx('Equity index', description='This is a dummy equity index')
     print(idx)
 
     qc.full_qc(idx)
